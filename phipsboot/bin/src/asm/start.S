@@ -88,9 +88,9 @@ entry_common:
     # This way, we can access all relevant data from the boot code. The mapping
     # is r/o for safety reasons. Hence, we can not write to memory from the
     # boot code once we entered 64-bit mode.
-    M_MAP_SYMBOL32  4 LINK_ADDR_BOOT boot_mem_pt_l4 boot_mem_pt_l3_lo 0x1
-    M_MAP_SYMBOL32  3 LINK_ADDR_BOOT boot_mem_pt_l3_lo boot_mem_pt_l2_lo 0x1
-    M_MAP_SYMBOL32  2 LINK_ADDR_BOOT boot_mem_pt_l2_lo LINK_ADDR_BOOT 0x81
+    M_MAP_SYMBOL32  4 LINK_ADDR_BOOT boot_mem_pt_l4 boot_mem_pt_l3_lo 0x3
+    M_MAP_SYMBOL32  3 LINK_ADDR_BOOT boot_mem_pt_l3_lo boot_mem_pt_l2_lo 0x3
+    M_MAP_SYMBOL32  2 LINK_ADDR_BOOT boot_mem_pt_l2_lo LINK_ADDR_BOOT 0x83
 
     # Mappings for all high-level code segments (code, data, ro-data).
     # At this level RX, RO, and RW have the same page-table index.
