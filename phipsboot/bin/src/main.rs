@@ -17,10 +17,13 @@ mod mem;
 mod xen_pvh;
 
 use crate::mem::stack;
+use alloc::alloc::{dealloc, alloc, Layout};
 use core::fmt::Write;
 use core::hint::black_box;
 use core::panic::PanicInfo;
 use lib::logger;
+use x86::{msr, apic};
+use x86_64::addr::VirtAddr;
 
 /// Entry into the high-level code of the loader.
 ///
@@ -46,18 +49,56 @@ extern "C" fn rust_entry64(
     logger::add_backend(driver::DebugconLogger::default()).unwrap();
     logger::add_backend(driver::SerialLogger::default()).unwrap();
     logger::flush(); // flush all buffered messages
+    log::info!("Logging works");
 
     env::init(bootloader_magic, bootloader_info_ptr);
-    env::print();
 
+    env::print();
     stack::assert_sanity_checks();
 
     log::info!("Now loading your kernel into 64-bit mode...");
     log::info!("Not implemented yet! =(");
 
     // break_stack();
-    create_pagefault();
+    //create_pagefault();
 
+    // Read the APIC's address from the respective MSR
+    let apic_base_content = unsafe {
+        msr::rdmsr(msr::APIC_BASE)
+    };
+    log::info!("APIC Base content: {:#016x}", apic_base_content);
+    let apic_page = apic_base_content & (!0x0FFFu64);
+    log::info!("APIC page: {:#016x}", apic_page);
+    // Map the APIC page
+    let layout = Layout::from_size_align(4096, 4096).expect("Layout should work");
+    let ptr = unsafe {alloc(layout) as u64 };
+    log::info!("Allocated memory at {:016x?}", ptr);
+    let mut lapic_v_address : u64 = 0xffffffff88200000;
+    let mut l0 : *const u8 = crate::extern_symbols::boot_mem_pt_l1_hi().cast::<u8>();
+    let mut l1 : *const u8 = unsafe { l0.add(load_addr_offset as usize) };
+    // l1 += 4;
+    unsafe {
+        log::info!("Link address high: {:?}", crate::extern_symbols::link_addr_high_base());
+        log::info!("L1 entry address: {:#016x?}", l0);
+        log::info!("L1 entry address: {:#016x?}", l1);
+        log::info!("offset {:x}", load_addr_offset);
+        let mut l1_ptr : * mut u64 = l1 as *mut u64;
+        let l4_index : usize = 1;
+        lapic_v_address += 0x1000 * (l4_index as u64);
+        log::info!("LAPIC vaddr: {:016x?}", lapic_v_address);
+        log::info!("L1 entry address: {:?}", l1_ptr.add(l4_index));
+        core::ptr::write(l1_ptr.add(l4_index), apic_page | (0x1b));
+        x86_64::instructions::tlb::flush_all();
+        log::info!("Entry in L1 0x{:x?} at address 0x{:x?}", core::ptr::read(l1_ptr.add(l4_index)), l1_ptr.add(l4_index));
+        log::info!("LAPIC version register address 0x{:x?}", (lapic_v_address + 0x30));
+        // let apic = apic::xapic::XAPIC::new(lapic_v_address);
+        log::info!("LAPIC version 0x{:x?}", core::ptr::read((lapic_v_address + 0x30) as *const u32));
+        log::info!("Sending IPI:");
+        let icr_l : u64= 0x300;
+        core::ptr::write((lapic_v_address + icr_l) as *mut u32, 0xc0400);
+
+    }
+    log::info!("Still alive");
     loop {}
 }
 
