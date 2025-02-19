@@ -71,25 +71,23 @@ extern "C" fn rust_entry64(
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
     let layout = Layout::from_size_align(4096, 4096).expect("Layout should work");
-    let ptr = unsafe {alloc(layout) as u64 };
-    log::info!("Allocated memory at {:016x?}", ptr);
-    let mut lapic_v_address : u64 = 0xffffffff88200000;
+    let lapic_v_address = unsafe {alloc(layout) as u64 };
+    log::info!("Allocated memory at {:016x?}", lapic_v_address);
+    let lapic_pt_index = ((lapic_v_address & !(crate::extern_symbols::link_addr_high_base() as u64)) >> 12) as usize;
+    log::info!("Allocated PAGE Index - HEX={:#016x?} DEZ={:?}", lapic_pt_index, lapic_pt_index);
     let mut l0 : *const u8 = crate::extern_symbols::boot_mem_pt_l1_hi().cast::<u8>();
     let mut l1 : *const u8 = unsafe { l0.add(load_addr_offset as usize) };
-    // l1 += 4;
+    // // l1 += 4;
     unsafe {
         log::info!("Link address high: {:?}", crate::extern_symbols::link_addr_high_base());
         log::info!("L1 entry address: {:#016x?}", l0);
         log::info!("L1 entry address: {:#016x?}", l1);
         log::info!("offset {:x}", load_addr_offset);
         let mut l1_ptr : * mut u64 = l1 as *mut u64;
-        let l4_index : usize = 1;
-        lapic_v_address += 0x1000 * (l4_index as u64);
-        log::info!("LAPIC vaddr: {:016x?}", lapic_v_address);
-        log::info!("L1 entry address: {:?}", l1_ptr.add(l4_index));
-        core::ptr::write(l1_ptr.add(l4_index), apic_page | (0x1b));
+        log::info!("L1 entry address: {:?}", l1_ptr.add(lapic_pt_index));
+        core::ptr::write(l1_ptr.add(lapic_pt_index), apic_page | (0x1b));
         x86_64::instructions::tlb::flush_all();
-        log::info!("Entry in L1 0x{:x?} at address 0x{:x?}", core::ptr::read(l1_ptr.add(l4_index)), l1_ptr.add(l4_index));
+        log::info!("Entry in L1 0x{:x?} at address 0x{:x?}", core::ptr::read(l1_ptr.add(lapic_pt_index)), l1_ptr.add(lapic_pt_index));
         log::info!("LAPIC version register address 0x{:x?}", (lapic_v_address + 0x30));
         // let apic = apic::xapic::XAPIC::new(lapic_v_address);
         log::info!("LAPIC version 0x{:x?}", core::ptr::read((lapic_v_address + 0x30) as *const u32));
