@@ -24,11 +24,11 @@ pub fn init(bootloader_magic: u64, bootloader_info_ptr: u64) {
     } else if bootloader_magic == 0x336ec578 {
         boot_variant = BootVariant::XenPvh;
     } else {
-        log::info!("inv code");
-        // panic!(
-        //     "Unknown boot loader magic! magic={:#x?}, info_ptr={:#x?}",
-        //     bootloader_magic, bootloader_info_ptr
-        // );
+        log::info!("inv magic: {:#016x}", bootloader_magic);
+        panic!(
+            "Unknown boot loader magic! magic={:#x?}, info_ptr={:#x?}",
+            bootloader_magic, bootloader_info_ptr
+        );
         boot_variant = BootVariant::Multiboot2;
     }
     log::info!("2");
