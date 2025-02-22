@@ -10,7 +10,7 @@ publish = false
 lib = { path = "../lib" }
 good_memory_allocator = "0.1.7"
 log = { version = "0.4.19", default-features = false }
-multiboot2 = "0.16.0"
+multiboot2 = "0.23.0"
 uart_16550 = "0.3.0"
 x86 = "0.52.0"
-x86_64 = "0.14.11"
+x86_64 = {version = "0.14.11"}
