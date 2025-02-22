@@ -1,9 +1,17 @@
 //! Types and helpers for x86_64 4-level paging.
 
+
 pub const PAGE_TABLE_ENTRY_SIZE: u64 = core::mem::size_of::<u64>() as u64;
 
 /// 9 bits select the entry of the given page table.
 pub const INDEX_BITMASK: u64 = 0x1ff;
+
+/// Address of the last used L1 page table
+static LAST_L1: u64 = 0;
+
+/// Index into the last used L1 table to use for next mapping
+/// This uses the assumption that the last 128 entries are free
+static mut LAST_L1_INDEX: usize = 384-1;
 
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Hash, Eq, Ord)]
 pub enum Level {
@@ -101,6 +109,34 @@ impl VirtAddr {
 
 /// Creates one single 1 GiB mapping with rwx permissions.
 fn _map_single_entry(_src: VirtAddr, _dest: PhysAddr, _flags: u64) {}
+
+/// This function maps the given physical page to the same frame as the given base address. Base address is expected
+/// to be 2 MiB aligned
+pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, pml1: VirtAddr) -> VirtAddr {
+    use x86::controlregs::cr3;
+    use core::ptr;
+    use crate::logger;
+    // Page walk to find L1 table
+    let mut result = 0x0_u64;
+    let mut mapped = false;
+
+    let pml1_addr : u64 = pml1.into();
+    while (LAST_L1_INDEX < 512) && (false == mapped) {
+        let pm_entry = ptr::read((pml1_addr as *mut u64).add(LAST_L1_INDEX));
+        // Check present bit
+        if 0 == (pm_entry & 0x1) {
+            result = ((pml1_addr & (!0x1FFFFFu64)) + ((LAST_L1_INDEX as u64) << 12)) as u64;
+            ptr::write(
+                (pml1_addr as *mut u64).add(LAST_L1_INDEX) as *mut u64,
+                Into::<u64>::into(src) | 0x3,
+            );
+            mapped = true;
+        }
+        LAST_L1_INDEX += 1;
+    }
+    VirtAddr::from(result)
+}
+
 
 #[cfg(test)]
 mod tests {
