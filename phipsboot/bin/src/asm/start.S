@@ -102,6 +102,7 @@ entry_common:
     M_MAP_HIGH_ADDR  1 LINK_ADDR_RX_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x1
     M_MAP_HIGH_ADDR  1 LINK_ADDR_RO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x1)
     M_MAP_HIGH_ADDR  1 LINK_ADDR_RW_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x3)
+    M_MAP_HIGH_ADDR  1 L1_HI_INFO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x3
 
 
     # #############################################################
@@ -179,6 +180,8 @@ LINK_ADDR_RO_PTR:   .quad LINK_ADDR_RO
                     .long COUNT_PAGES_RO
 LINK_ADDR_RW_PTR:   .quad LINK_ADDR_RW
                     .long COUNT_PAGES_RW
+L1_HI_INFO_PTR:     .quad boot_mem_pt_l1_hi
+                    .long 1
 
 # Global Descriptor Table (GDT)
 .balign 8
