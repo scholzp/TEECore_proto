@@ -3,11 +3,11 @@
 use core::cell::OnceCell;
 use lib::safe::Safe;
 
-static BOOT_VARIANT: Safe<OnceCell<BootVariant>> = Safe::new(OnceCell::new());
-static BOOT_INFO_PTR: Safe<OnceCell<u64>> = Safe::new(OnceCell::new());
+pub static BOOT_VARIANT: Safe<OnceCell<BootVariant>> = Safe::new(OnceCell::new());
+pub static BOOT_INFO_PTR: Safe<OnceCell<u64>> = Safe::new(OnceCell::new());
 
 #[derive(Debug)]
-enum BootVariant {
+pub enum BootVariant {
     Multiboot1,
     Multiboot2,
     XenPvh,

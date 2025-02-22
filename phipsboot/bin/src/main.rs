@@ -24,7 +24,9 @@ use core::ops::Deref;
 use core::panic::PanicInfo;
 use lib::logger;
 use lib::mem::paging;
+use lib::mem::paging::{PhysAddr, VirtAddr};
 use x86::{msr, apic};
+use multiboot2::{BootInformation, BootInformationHeader};
 
 /// Entry into the high-level code of the loader.
 ///
@@ -71,21 +73,36 @@ extern "C" fn rust_entry64(
     let apic_page = apic_base_content & (!0x0FFFu64);
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
+    let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
     unsafe {
-        let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
-        log::info!("{:?} {:?}", paging::PhysAddr::from(apic_page), paging::VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
+        log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
         let virt_lapic = unsafe {
             paging::map_phys_rel_base_addr(
-                paging::PhysAddr::from(apic_page),
-                paging::VirtAddr::from(l1_addr),
+                PhysAddr::from(apic_page),
+                VirtAddr::from(l1_addr),
+                0x3 | (0x1 << 5)
             )
         };
         log::info!("Virtual lapic after map_phys_rel_base_addr(): {:#016x?}", Into::<u64>::into(virt_lapic));
         let icr_l : u64 = 0x300;
         core::ptr::write((Into::<u64>::into(virt_lapic) + icr_l) as *mut u32, 0xc0400);
-
         // log::info!("Still alive");
     }
+
+    let mbi_addr : u64 = *(env::BOOT_INFO_PTR.get().unwrap());
+    let mbi_virt = unsafe { Into::<u64>::into(
+        paging::map_phys_rel_base_addr(
+            PhysAddr::from(mbi_addr),
+            VirtAddr::from(l1_addr),
+            0x3
+        ))
+    };
+    log::info!("MBI virtual address: {:#016x?}", mbi_virt);
+    let boot_info = unsafe { BootInformation::load( mbi_virt as *const BootInformationHeader) };
+    unsafe {
+        log::info!("MBI header size: {:?}", (*(mbi_virt as *const BootInformationHeader)).total_size());
+    }
+    log::info!("MBI boot info: {:?}", boot_info);
     loop {}
 }
 

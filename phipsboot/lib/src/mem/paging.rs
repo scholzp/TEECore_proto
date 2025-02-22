@@ -112,7 +112,7 @@ fn _map_single_entry(_src: VirtAddr, _dest: PhysAddr, _flags: u64) {}
 
 /// This function maps the given physical page to the same frame as the given base address. Base address is expected
 /// to be 2 MiB aligned
-pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, pml1: VirtAddr) -> VirtAddr {
+pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, pml1: VirtAddr, flags: u64) -> VirtAddr {
     use x86::controlregs::cr3;
     use core::ptr;
     use crate::logger;
@@ -128,7 +128,7 @@ pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, pml1: VirtAddr) -> VirtAddr 
             result = ((pml1_addr & (!0x1FFFFFu64)) + ((LAST_L1_INDEX as u64) << 12)) as u64;
             ptr::write(
                 (pml1_addr as *mut u64).add(LAST_L1_INDEX) as *mut u64,
-                (Into::<u64>::into(src) & ( & (!0xFFFu64))) | 0x3,
+                (Into::<u64>::into(src) & ( & (!0xFFFu64))) | flags,
             );
             mapped = true;
         }
