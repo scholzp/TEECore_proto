@@ -63,6 +63,12 @@ pub fn init() {
     }
 }
 
+pub fn set_nmi_handler(handler: HandlerFunc) {
+    let mut idt = IDT.borrow_mut();
+    idt.non_maskable_interrupt
+        .set_handler_fn(handler);
+}
+
 mod exception_handlers {
     use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
 
@@ -77,7 +83,7 @@ mod exception_handlers {
     }
 
     pub extern "x86-interrupt" fn nmi(stack_frame: InterruptStackFrame) {
-        log::error!("exception: 0x2 nmi, stack_frame={stack_frame:#?}");
+        log::error!("exception: 0x2 debug, stack_frame={stack_frame:#?}");
         loop {}
     }
 
