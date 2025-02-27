@@ -90,6 +90,7 @@ extern "C" fn rust_entry64(
     unsafe {
         log::info!("MBI header size: {:?}", (*(mbi_virt as *const BootInformationHeader)).total_size());
     }
+
     let binding = boot_info.unwrap();
     let mmap_shared_entry = binding
             .memory_map_tag()
@@ -107,6 +108,7 @@ extern "C" fn rust_entry64(
             0x3 | (0x1 << 5) // present, RW, CD
         ))
     };
+
     log::info!("Virt addr of shared mem: {:#016x?}", shared_mem_virt);
     unsafe {core::ptr::write(shared_mem_virt as *mut u8, 1); }
     log::info!("Set message byte to: {:?}", unsafe {core::ptr::read(shared_mem_virt as *mut u8)});
@@ -130,7 +132,7 @@ extern "C" fn rust_entry64(
         };
         log::info!("Virtual lapic after map_phys_rel_base_addr(): {:#016x?}", Into::<u64>::into(virt_lapic));
         let icr_l : u64 = 0x300;
-        core::ptr::write((Into::<u64>::into(virt_lapic) + icr_l) as *mut u32, 0xc0400);
+        // core::ptr::write((Into::<u64>::into(virt_lapic) + icr_l) as *mut u32, 0xc0400);
         // log::info!("Still alive");
     }
 
