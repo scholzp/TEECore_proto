@@ -1,5 +1,6 @@
 pub mod task_id;
 pub mod task;
+pub mod pmc;
 
 use crate::shared_mem_com::{SharedMemCommunicator, TeeCommand};
 use crate::state_machine::task::execute_task;
@@ -52,7 +53,7 @@ impl From<StateMachine<StateInitialized>> for StateMachine<StatePolling> {
 
 impl From<StateMachine<StatePolling>> for StateMachine<StateLocking> {
     fn from(mut m: StateMachine<StatePolling>) -> StateMachine<StateLocking> {
-        // TODO: PMC activate
+        pmc::setup_pmcs();
         StateMachine {
             communicator: m.communicator,
             state: StateLocking{},
@@ -74,7 +75,8 @@ impl From<StateMachine<StateLocking>> for StateMachine<StateExecuteApp> {
 
 impl From<StateMachine<StateExecuteApp>> for StateMachine<StateUnlocking> {
     fn from(mut m: StateMachine<StateExecuteApp>) -> StateMachine<StateUnlocking> {
-        // Deactivate PMCs
+        info!("Unlock TEE");
+        pmc::read_and_print_pmcs();
         StateMachine {
             communicator: m.communicator,
             state: StateUnlocking{},
