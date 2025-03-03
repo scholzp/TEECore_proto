@@ -16,6 +16,7 @@ mod idt;
 mod mem;
 mod xen_pvh;
 mod shared_mem_com;
+mod state_machine;
 
 use crate::mem::stack;
 use alloc::alloc::{dealloc, alloc, Layout};
@@ -28,6 +29,8 @@ use lib::mem::paging;
 use lib::mem::paging::{PhysAddr, VirtAddr};
 use x86::{msr, apic};
 use multiboot2::{BootInformation, BootInformationHeader, MemoryAreaTypeId};
+use crate::state_machine::*;
+use crate::state_machine::task::init_task_map;
 
 /// Entry into the high-level code of the loader.
 ///
@@ -120,24 +123,11 @@ extern "C" fn rust_entry64(
         )
     };
 
-    unsafe {
-        log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
-        let virt_lapic = unsafe {
-            paging::map_phys_rel_base_addr(
-                PhysAddr::from(apic_page),
-                1,
-                VirtAddr::from(l1_addr),
-                0x3 | (0x1 << 5) // present, RW, CD
-            )
-        };
-        log::info!("Virtual lapic after map_phys_rel_base_addr(): {:#016x?}", Into::<u64>::into(virt_lapic));
-        let icr_l : u64 = 0x300;
-        // core::ptr::write((Into::<u64>::into(virt_lapic) + icr_l) as *mut u32, 0xc0400);
-        // log::info!("Still alive");
+    init_task_map();
+    let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
+    loop {
+        state_machine = state_machine::run_state_machine(state_machine);
     }
-
-    shared_mem_communicator.poll();
-    loop {}
 }
 
 /// Sometimes useful to test the stack + stack canary.

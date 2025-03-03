@@ -4,6 +4,8 @@ use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::instructions::nop;
 
 use crate::idt::set_nmi_handler;
+use crate::state_machine::task_id::TaskId;
+
 use core::slice;
 use core::ptr;
 
@@ -11,26 +13,40 @@ use core::ptr;
 #[derive(Copy, Clone, Debug)]
 pub enum TeeCommand {
     None = 0,
-    TeeSend = 1,
-    HostSend = 2,
+    TeeReady = 0x01,
+    TeeSend = 0x02,
+    HostSend = 0x11,
     Unknown (u8),
 }
 
 
+#[derive(Debug)]
 #[repr(C, align(8))]
 pub struct SharedMemCommunicator {
     memory : *mut u8,
     size: usize,
-    serving_nmi: bool,
 }
 
 impl From<u8> for TeeCommand {
     fn from(num: u8) -> TeeCommand {
         match num {
             0 => TeeCommand::None,
-            1 => TeeCommand::TeeSend,
-            2 => TeeCommand::HostSend,
+            0x01 => TeeCommand::TeeReady,
+            0x02 => TeeCommand::TeeSend,
+            0x11 => TeeCommand::HostSend,
             x => TeeCommand::Unknown(x),
+        }
+    }
+}
+
+impl From<TeeCommand> for u8 {
+    fn from(command: TeeCommand) -> u8 {
+        match command {
+            TeeCommand::None => 0,
+            TeeCommand::TeeReady => 0x01,
+            TeeCommand::TeeSend => 0x02,
+            TeeCommand::HostSend => 0x11,
+            TeeCommand::Unknown(x) => x,
         }
     }
 }
@@ -41,7 +57,6 @@ impl SharedMemCommunicator {
         SharedMemCommunicator {
             memory: mem,
             size,
-            serving_nmi: false,
         }
     }
 
@@ -54,12 +69,33 @@ impl SharedMemCommunicator {
         }
     }
 
+    pub fn get_task(&self) -> TaskId {
+        if true == self.memory.is_null() {
+            return TaskId::Unknown;
+        }
+        unsafe {
+            Into::<TaskId>::into(ptr::read(self.memory.add(1)))
+        }
+    }
+
+    pub fn set_status(&self, command: TeeCommand) {
+        unsafe {
+            (ptr::write(self.memory, Into::<u8>::into(command)));
+        }
+    }
+
+    pub fn set_task(&self, task: TaskId) {
+        unsafe {
+            (ptr::write(self.memory.add(1), Into::<u8>::into(task)));
+        }
+    }
+
     pub unsafe fn write_status(&mut self, status: u8) {
         ptr::write(self.memory, status);
     }
 
-    pub unsafe fn read_mem<'a>(&self, status: u8) -> &'a[u8]{
-        slice::from_raw_parts(self.memory.add(1), self.size - 1)
+    pub unsafe fn get_slice<'a>(&mut self) -> &'a mut [u8]{
+        slice::from_raw_parts_mut(self.memory.add(2), self.size - 2)
     }
 
     /// Write bytes from source to the shared memory with offset `offset`
@@ -79,10 +115,17 @@ impl SharedMemCommunicator {
     pub fn poll(&mut self) {
         loop {
             match self.get_status() {
-                TeeCommand::None => log::info!("nothing ot do!"),
-                TeeCommand::TeeSend => log::info!("Waiting for response!"),
-                TeeCommand::HostSend => log::info!("Received message"),
-                TeeCommand::Unknown(x) => log::info!("Found unknown status: {:?}", x)
+                TeeCommand::None =>{
+                    log::info!("nothing ot do!");
+                }
+                TeeCommand::TeeSend | TeeCommand::TeeReady => {
+                    log::info!("Waiting for response!");
+                },
+                TeeCommand::HostSend => {
+                    log::info!("Received message");
+                    return;
+                },
+                TeeCommand::Unknown(x) => log::info!("Found unknown status: {:#02x?}", x)
             }
             for x in 0..(1024u64 * 1024 * 1024 * 10) {
                 nop();
