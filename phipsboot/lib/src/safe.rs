@@ -1,6 +1,6 @@
 //! Module for [`Safe`].
 
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 /// Smart pointer that marks the inner type as [`Send`] and [`Sync`]. This is
 /// useful as wrapper for global statics, if the inner type alone is usually not
@@ -21,6 +21,12 @@ impl<T> Deref for Safe<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T> DerefMut for Safe<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
