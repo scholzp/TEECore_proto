@@ -76,14 +76,6 @@ impl SharedMemCommunicator {
         ptr::copy_nonoverlapping(src.as_ptr(), self.memory.add(offset), bytes_to_copy);
     }
 
-    // pub fn toggle_nmi_serving(&self) {
-    //     if self.serving_nmi == false {
-    //         set_nmi_handler(Self::nmi_handler);
-    //     } else {
-    //         set_nmi_handler(Self::nmi_trigger_execption);
-    //     }
-    // }
-
     pub fn poll(&mut self) {
         loop {
             match self.get_status() {
@@ -97,15 +89,4 @@ impl SharedMemCommunicator {
             }
         }
     }
-
-    // extern "x86-interrupt" fn nmi_handler(stack_frame: InterruptStackFrame) {
-    //     log::info!("Serving NMI...");
-    //     // Self::service_nmi();
-    //     // loop {}
-    // }
-
-    // extern "x86-interrupt" fn nmi_trigger_execption(stack_frame: InterruptStackFrame) {
-    //     log::error!("exception: 0x2 debug, stack_frame={stack_frame:#?}");
-    //     loop{};
-    // }
 }
