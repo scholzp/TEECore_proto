@@ -25,6 +25,7 @@ pub enum TeeCommand {
 pub struct SharedMemCommunicator {
     memory : *mut u8,
     size: usize,
+    still_waiting: bool,
 }
 
 impl From<u8> for TeeCommand {
@@ -57,6 +58,7 @@ impl SharedMemCommunicator {
         SharedMemCommunicator {
             memory: mem,
             size,
+            still_waiting: false,
         }
     }
 
@@ -116,13 +118,17 @@ impl SharedMemCommunicator {
         loop {
             match self.get_status() {
                 TeeCommand::None =>{
-                    log::info!("nothing ot do!");
+                    if  false == self.still_waiting {
+                        log::info!("nothing ot do!");
+                    }
+                    self.still_waiting = true;
                 }
                 TeeCommand::TeeSend | TeeCommand::TeeReady => {
                     log::info!("Waiting for response!");
                 },
                 TeeCommand::HostSend => {
                     log::info!("Received message");
+                    self.still_waiting = false;
                     return;
                 },
                 TeeCommand::Unknown(x) => log::info!("Found unknown status: {:#02x?}", x)
