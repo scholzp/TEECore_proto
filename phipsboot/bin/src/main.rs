@@ -4,8 +4,6 @@
 
 // #![feature(error_in_core)]
 
-// extern crate alloc;
-
 extern crate alloc;
 
 mod asm;
@@ -78,6 +76,8 @@ extern "C" fn rust_entry64(
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
     let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
+    // make the L! page table available for translation
+    unsafe { paging::use_l1_page_table(l1_addr as u64) };
 
     let mbi_addr : u64 = *(env::BOOT_INFO_PTR.get().unwrap());
     let mbi_virt = unsafe { Into::<u64>::into(
@@ -113,6 +113,7 @@ extern "C" fn rust_entry64(
     };
 
     log::info!("Virt addr of shared mem: {:#016x?}", shared_mem_virt);
+    log::info!("Phys addr of shared mem: {:#016x?}", unsafe { paging::get_physical_address(shared_mem_virt) });
     unsafe {core::ptr::write(shared_mem_virt as *mut u8, 1); }
     log::info!("Set message byte to: {:?}", unsafe {core::ptr::read(shared_mem_virt as *mut u8)});
 
