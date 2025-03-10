@@ -7,7 +7,7 @@ pub const PAGE_TABLE_ENTRY_SIZE: u64 = core::mem::size_of::<u64>() as u64;
 pub const INDEX_BITMASK: u64 = 0x1ff;
 
 /// Address of the last used L1 page table
-static LAST_L1: u64 = 0;
+static mut LAST_L1: u64 = 0;
 
 /// Index into the last used L1 table to use for next mapping
 /// This uses the assumption that the last 128 entries are free
@@ -109,6 +109,11 @@ impl VirtAddr {
 
 /// Creates one single 1 GiB mapping with rwx permissions.
 fn _map_single_entry(_src: VirtAddr, _dest: PhysAddr, _flags: u64) {}
+
+pub unsafe fn use_l1_page_table(table_addr: u64) {
+    LAST_L1 = table_addr
+}
+
 
 /// This function maps the given physical page to the same frame as the given base address. Base address is expected
 /// to be 2 MiB aligned
