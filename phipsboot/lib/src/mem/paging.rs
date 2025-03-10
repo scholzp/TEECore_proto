@@ -1,5 +1,5 @@
 //! Types and helpers for x86_64 4-level paging.
-
+use core::ptr;
 
 pub const PAGE_TABLE_ENTRY_SIZE: u64 = core::mem::size_of::<u64>() as u64;
 
@@ -114,12 +114,43 @@ pub unsafe fn use_l1_page_table(table_addr: u64) {
     LAST_L1 = table_addr
 }
 
+/// Return the physical address a given virtual address is given. If the entry
+/// is not present return 0.
+pub unsafe fn get_physical_address(virt_addr: u64) -> u64 {
+    // generate the L1 index, that is bit 12...21
+    let l1_index: usize = ((virt_addr >> 12) & 0x1FF).try_into().unwrap();
+    // Check the present bit (bit 0)
+    if 0 == (ptr::read((LAST_L1 as *mut u64).add(l1_index)) & (0x1_u64)) {
+        0_u64
+    }
+    else {
+        // offset into phys page equals the last 12 bits of the virtual address
+        let offset_within_page: u64 = (virt_addr & 0xFFF_u64).try_into().unwrap();
+        // We read the entry in the page table, mask the last 12 bits and add the physical offset
+        ((ptr::read((LAST_L1 as *mut u64).add(l1_index)) & (!0xFFF_u64))
+            | offset_within_page )// Add offset for non page aligned addresses
+            & (!(0x1_u64 << 63)) // Mask NX bit
+    }
+}
+
+
+/// Return the virtual address if a mapping in the L1 page exists. Else return 0
+pub unsafe fn get_virtual_address(phys_addr: u64) -> u64 {
+    // offset into phys page equals the last 12 bits of the virtual address
+    let offset_within_page: u64 = (phys_addr & 0xFFF).try_into().unwrap();
+    for x in 0..512 {
+        let pt_entry = (ptr::read((LAST_L1 as *mut u64).add(x)) & !(0xFFF)) & !(0x1_u64 << 63);
+        if (phys_addr & !(0xFFF)) == pt_entry {
+            return pt_entry | offset_within_page;
+        }
+    }
+    return 0;
+}
 
 /// This function maps the given physical page to the same frame as the given base address. Base address is expected
 /// to be 2 MiB aligned
 pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, size: usize, pml1: VirtAddr, flags: u64) -> VirtAddr {
     use x86::controlregs::cr3;
-    use core::ptr;
     use crate::logger;
     // Page walk to find L1 table
     let mut result = 0x0_u64;
