@@ -25,6 +25,7 @@ pub fn init_task_map() {
         // COMMUNICATOR = Some(Box::new(communicator));
         TaskMap.insert(TaskId::Ping, Box::new(task_ping));
         TaskMap.insert(TaskId::AttackReadMem, Box::new(task_attack_read_mem));
+        TaskMap.insert(TaskId::AttackWriteMem, Box::new(task_attack_write_mem));
     }
 }
 
@@ -40,7 +41,20 @@ fn task_ping(communicator: &mut SharedMemCommunicator) {
     info!("Ping");
 }
 
+
+fn task_attack_write_mem(communicator: &mut SharedMemCommunicator) {
+    task_mem_helper(communicator);
+    communicator.set_task(TaskId::AttackWriteMem);
+    communicator.set_status(TeeCommand::TeeSend);
+}
+
 fn task_attack_read_mem(communicator: &mut SharedMemCommunicator) {
+    task_mem_helper(communicator);
+    communicator.set_task(TaskId::AttackReadMem);
+    communicator.set_status(TeeCommand::TeeSend);
+}
+
+fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
     use alloc::alloc::{alloc, Layout};
     // We have one byte status field and 8 byte physical address that are
     // stored in the shared memory.
@@ -62,11 +76,11 @@ fn task_attack_read_mem(communicator: &mut SharedMemCommunicator) {
         };
         for x in 0..(num_elements / 8) {
             unsafe {
-                ptr::write(data_ptr.add(x), x as u64);
+                ptr::write_volatile(data_ptr.add(x), x as u64);
             }
         }
         unsafe {
-            ptr::write(
+            ptr::write_volatile(
                 payload_mem.as_mut_ptr().add(address_offset) as *mut u64,
                 paging::get_physical_address(data_ptr as u64)
             );
@@ -75,17 +89,17 @@ fn task_attack_read_mem(communicator: &mut SharedMemCommunicator) {
         payload_mem[0] = 1;
     } else {
         unsafe {
+            use core::arch::asm;
             let data_ptr = paging::get_virtual_address(
-                ptr::read(payload_mem.as_mut_ptr().add(address_offset) as *mut u64)
+                ptr::read_volatile(payload_mem.as_mut_ptr().add(address_offset) as *mut u64)
             ) as *mut u64;
             info!("Use memory at phys Addr: {:#016x?}", data_ptr as u64);
             for x in 0..(num_elements / 8) {
-                    ptr::write(data_ptr.add(x), ptr::read(data_ptr) * 2);
+                    ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) * 2);
             }
+            // asm!("wbinvd");
         }
     }
-    communicator.set_task(TaskId::AttackReadMem);
-    communicator.set_status(TeeCommand::TeeSend);
 }
 
 pub fn execute_task(task_id: TaskId, communicator: &mut SharedMemCommunicator) {
