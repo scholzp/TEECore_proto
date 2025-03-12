@@ -108,7 +108,7 @@ extern "C" fn rust_entry64(
             PhysAddr::from(mmap_shared_entry.start_address()),
             (mmap_shared_entry.size() / 4096) as usize,
             VirtAddr::from(l1_addr),
-            0x3 | (0x1 << 5) // present, RW, CD
+            0x3 | (0x1 << 4) // present, RW, CD
         ))
     };
 
