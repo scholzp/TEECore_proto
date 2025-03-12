@@ -126,6 +126,7 @@ extern "C" fn rust_entry64(
 
     init_task_map();
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     loop {
         state_machine = state_machine::run_state_machine(state_machine);
     }

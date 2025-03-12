@@ -3,6 +3,10 @@ use core::ptr;
 
 pub const PAGE_TABLE_ENTRY_SIZE: u64 = core::mem::size_of::<u64>() as u64;
 
+/// Mask that only contains the 40 address bits used to address a 4KiB page
+const ADDRESS_BITS_MASK: u64 = 0x000F_FFFF_FFFF_F000_u64;
+const L1_ADDRESS_BITS_MASK: u64 = 0xFFFF_FFFF_FFE0_0000_u64;
+
 /// 9 bits select the entry of the given page table.
 pub const INDEX_BITMASK: u64 = 0x1ff;
 
@@ -112,6 +116,27 @@ fn _map_single_entry(_src: VirtAddr, _dest: PhysAddr, _flags: u64) {}
 
 pub unsafe fn use_l1_page_table(table_addr: u64) {
     LAST_L1 = table_addr
+}
+
+/// returns a non cryptographic 64 bit hash so this doesn't get optimized away
+pub unsafe fn touch_all_present_pages() -> u64 {
+    let mut result: u64 = 0;
+    let l1_address_bits = LAST_L1 & & L1_ADDRESS_BITS_MASK;
+    for x in 0..512 {
+        // read the x-th page table entry of L1 pt
+        let pt_entry = ptr::read((LAST_L1 as *mut u64).add(x));
+        // check present bit
+        if 1 == (pt_entry & 0x1_u64) {
+            // generate virtual address of first byte in the mapped page from L1
+            // PT and the index
+            let first_qword = (l1_address_bits | ((x as u64) << 12)) as *mut u64;
+            for i in 0..512 {
+                result = result.wrapping_add(ptr::read_volatile(first_qword));
+            }
+            result += 1;
+        }
+    }
+    result
 }
 
 /// Return the physical address a given virtual address is given. If the entry
