@@ -43,6 +43,17 @@ pub const EVENT_SKYLAKE_L2_LINES_IN_ALL: u64 = 0xf1_u64 | 0x1f_u64 << 8;
 /// Predefined events that counts references to on-die LLC
 pub const EVENT_PREDEFINED_LLC_REFERENCES: u64 = 0x2e_u64 | 0x4f_u64 << 8;
 
+pub const EVENT_ICELAKE_OFFCORE_ALL_EVENTS: u64 = 0x21_u64 | 0x80_u64 << 8;
+pub const EVENT_ICELAKE_MEM_LOAD_MISC_RETIRED_UC: u64 = 0xd4_u64 | 0x04_u64 << 8;
+pub const EVENT_ICELAKE_MEM_LOAD_L3_HIT_RETIRED_XSNP_HITM: u64 = 0xd2_u64 | 0x04_u64 << 8;
+pub const EVENT_ICELAKE_L2_ALL_DEMAND_DATA_RD: u64 = 0x24_u64 | 0xe1_u64 << 8;
+// pub const EVENT_ICELAKE_L2_ALL_DEMAND_MISS: u64 = 0x24_u64 | 0x21_u64 << 8;
+
+// Retired all stores: pub const EVENT_ICELAKE_L2_ALL_DEMAND_MISS: u64 = 0xd0_u64 | 0x82_u64 << 8;
+// All L1 hits pub const EVENT_ICELAKE_L2_ALL_DEMAND_MISS: u64 = 0xd1_u64 | 0x01_u64 << 8;
+// L2 Hits as source
+pub const EVENT_ICELAKE_L2_ALL_DEMAND_MISS: u64 = 0xd1_u64 | 0x02_u64 << 8;
+
 
 pub struct ArchitecturalEventCounter {
 	pmc_index: u8,
