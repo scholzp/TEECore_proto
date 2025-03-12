@@ -53,7 +53,6 @@ impl From<StateMachine<StateInitialized>> for StateMachine<StatePolling> {
 
 impl From<StateMachine<StatePolling>> for StateMachine<StateLocking> {
     fn from(mut m: StateMachine<StatePolling>) -> StateMachine<StateLocking> {
-        pmc::setup_pmcs();
         StateMachine {
             communicator: m.communicator,
             state: StateLocking{},

@@ -29,6 +29,7 @@ use x86::{msr, apic};
 use multiboot2::{BootInformation, BootInformationHeader, MemoryAreaTypeId};
 use crate::state_machine::*;
 use crate::state_machine::task::init_task_map;
+use crate::state_machine::pmc;
 
 /// Entry into the high-level code of the loader.
 ///
@@ -125,6 +126,7 @@ extern "C" fn rust_entry64(
     };
 
     init_task_map();
+    pmc::setup_pmcs();
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     loop {
