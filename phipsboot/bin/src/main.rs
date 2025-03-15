@@ -26,6 +26,7 @@ use lib::logger;
 use lib::mem::paging;
 use lib::mem::paging::{PhysAddr, VirtAddr};
 use x86::{msr, apic};
+use x86::cpuid::CpuId;
 use multiboot2::{BootInformation, BootInformationHeader, MemoryAreaTypeId};
 use crate::state_machine::*;
 use crate::state_machine::task::init_task_map;
@@ -124,14 +125,48 @@ extern "C" fn rust_entry64(
             mmap_shared_entry.size() as usize,
         )
     };
-
     init_task_map();
-    pmc::setup_pmcs();
+
+    // unsafe {
+    //     use alloc::alloc::{alloc, Layout};
+    //     use core::ptr;
+    //     use core::arch::asm;
+
+    //     let data_ptr = unsafe {
+    //         alloc(Layout::from_size_align(1024 * 64, 4096).unwrap()) as *mut u32
+    //     };
+    //     let mut items = 1024;
+    //     for a in 0..6 {
+    //         log::info!("Num 32 bit elements: {:?}", items);
+    //         for b in 0..5 {
+    //             pmc::setup_pmcs();
+    //             for c in 0..(items / 4)
+    //             {
+    //                 asm!(
+    //                     "clflush [{tpm}]",
+    //                     tpm = in(reg) (data_ptr.add(c) as *const u8),
+    //                 );
+    //             }
+    //             asm!("mfence");
+    //             for c in 0..(items / 4)
+    //             {
+    //                 ptr::write_volatile(data_ptr.add(c), ptr::read_volatile(data_ptr.add(c)) as u32);
+    //             }
+    //             pmc::read_and_print_pmcs();
+    //         }
+    //         items = items * 2;
+    //     }
+    // }
+    log::info!("Number of supported counters: {:?}",
+        CpuId::new().get_performance_monitoring_info().unwrap().number_of_counters());
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     loop {
+        pmc::setup_pmcs();
         state_machine = state_machine::run_state_machine(state_machine);
+        pmc::read_and_print_pmcs();
     }
+    loop {}
 }
 
 /// Sometimes useful to test the stack + stack canary.

@@ -41,9 +41,9 @@ impl StateMachine<StateInitialized> {
 
 impl From<StateMachine<StateInitialized>> for StateMachine<StatePolling> {
     fn from(mut m: StateMachine<StateInitialized>) -> StateMachine<StatePolling> {
-        info!("Polling...");
+        // info!("Polling...");
         m.communicator.poll();
-        info!("Received command");
+        // info!("Received command");
         StateMachine {
             communicator: m.communicator,
             state: StatePolling{},
@@ -53,6 +53,7 @@ impl From<StateMachine<StateInitialized>> for StateMachine<StatePolling> {
 
 impl From<StateMachine<StatePolling>> for StateMachine<StateLocking> {
     fn from(mut m: StateMachine<StatePolling>) -> StateMachine<StateLocking> {
+        // pmc::setup_pmcs();
         StateMachine {
             communicator: m.communicator,
             state: StateLocking{},
@@ -63,7 +64,7 @@ impl From<StateMachine<StatePolling>> for StateMachine<StateLocking> {
 impl From<StateMachine<StateLocking>> for StateMachine<StateExecuteApp> {
     fn from(mut m: StateMachine<StateLocking>) -> StateMachine<StateExecuteApp> {
         // Execute task, collect results
-        info!("Execute task with ID {:#02x?}", m.communicator.get_task());
+        // info!("Execute task with ID {:#02x?}", m.communicator.get_task());
         execute_task(m.communicator.get_task(), &mut m.communicator);
         StateMachine {
             communicator: m.communicator,
@@ -74,8 +75,8 @@ impl From<StateMachine<StateLocking>> for StateMachine<StateExecuteApp> {
 
 impl From<StateMachine<StateExecuteApp>> for StateMachine<StateUnlocking> {
     fn from(mut m: StateMachine<StateExecuteApp>) -> StateMachine<StateUnlocking> {
-        info!("Unlock TEE");
-        pmc::read_and_print_pmcs();
+        // info!("Unlock TEE");
+        // pmc::read_and_print_pmcs();
         StateMachine {
             communicator: m.communicator,
             state: StateUnlocking{},

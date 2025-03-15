@@ -124,10 +124,10 @@ impl SharedMemCommunicator {
                     self.still_waiting = true;
                 }
                 TeeCommand::TeeSend | TeeCommand::TeeReady => {
-                    log::info!("Waiting for response!");
+                    // log::info!("Waiting for response!");
                 },
                 TeeCommand::HostSend => {
-                    log::info!("Received message");
+                    // log::info!("Received message");
                     self.still_waiting = false;
                     return;
                 },
