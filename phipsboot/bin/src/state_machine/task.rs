@@ -26,6 +26,7 @@ pub fn init_task_map() {
         TaskMap.insert(TaskId::Ping, Box::new(task_ping));
         TaskMap.insert(TaskId::AttackReadMem, Box::new(task_attack_read_mem));
         TaskMap.insert(TaskId::AttackWriteMem, Box::new(task_attack_write_mem));
+        TaskMap.insert(TaskId::AttackNopMem, Box::new(task_attack_nop_mem));
     }
 }
 
@@ -54,6 +55,12 @@ fn task_attack_read_mem(communicator: &mut SharedMemCommunicator) {
     communicator.set_status(TeeCommand::TeeSend);
 }
 
+fn task_attack_nop_mem(communicator: &mut SharedMemCommunicator) {
+    task_mem_helper(communicator);
+    communicator.set_task(TaskId::AttackNopMem);
+    communicator.set_status(TeeCommand::TeeSend);
+}
+
 fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
     use alloc::alloc::{alloc, Layout};
     // We have one byte status field and 8 byte physical address that are
@@ -65,18 +72,16 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
     let num_elements : usize = 0x1 << 12;
     let address_offset = 2;
 
-    info!("React to attack");
     // First byte denote if vector was initialized
     if 0 == payload_mem[0] {
         // Create a vecotr with capacity to make sure that all is done with one
         //allocation
-        info!("1");
         let data_ptr = unsafe {
-            alloc(Layout::from_size_align(num_elements, 4096).unwrap()) as *mut u64
+            alloc(Layout::from_size_align(num_elements, 4096).unwrap()) as *mut u32
         };
-        for x in 0..(num_elements / 8) {
+        for x in 0..(num_elements / 4) {
             unsafe {
-                ptr::write_volatile(data_ptr.add(x), x as u64);
+                ptr::write_volatile(data_ptr.add(x), 0x1_u32);
             }
         }
         unsafe {
@@ -85,19 +90,23 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
                 paging::get_physical_address(data_ptr as u64)
             );
         }
-        info!("Initialized vector: {:#016x?} -> {:#016x?}", data_ptr as u64, unsafe{ paging::get_physical_address(data_ptr as u64) });
+        // info!("Initialized vector: {:#016x?} -> {:#016x?}", data_ptr as u64, unsafe{ paging::get_physical_address(data_ptr as u64) });
         payload_mem[0] = 1;
     } else {
         unsafe {
+            use crate::state_machine::pmc;
             use core::arch::asm;
+
+            let mut hash: u32 = 0;
             let data_ptr = paging::get_virtual_address(
                 ptr::read_volatile(payload_mem.as_mut_ptr().add(address_offset) as *mut u64)
-            ) as *mut u64;
-            info!("Use memory at phys Addr: {:#016x?}", data_ptr as u64);
-            for x in 0..(num_elements / 8) {
-                    ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) * 2);
+            ) as *mut u32;
+            for x in 0..(num_elements / 4) {
+                // let value = ptr::read_volatile(data_ptr.add(x));
+                // hash += value + 1;
+                // ptr::write_volatile(data_ptr.add(x), value + 1);
+                ptr::write_volatile(data_ptr.add(x), x as u32);
             }
-            // asm!("wbinvd");
         }
     }
 }
