@@ -71,6 +71,7 @@ pub fn set_nmi_handler(handler: HandlerFunc) {
 
 mod exception_handlers {
     use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
+    use core::arch::x86_64 as core_x86;
 
     pub extern "x86-interrupt" fn divide(stack_frame: InterruptStackFrame) {
         log::error!("exception: 0x0 division error, stack_frame={stack_frame:#?}");
@@ -83,7 +84,8 @@ mod exception_handlers {
     }
 
     pub extern "x86-interrupt" fn nmi(stack_frame: InterruptStackFrame) {
-        log::error!("exception: 0x2 debug, stack_frame={stack_frame:#?}");
+        let tsc = unsafe{ core_x86::_rdtsc() };
+        log::error!("exception: 0x2 debug, stack_frame={stack_frame:#?}, tsc={tsc:#?}");
         loop {}
     }
 
