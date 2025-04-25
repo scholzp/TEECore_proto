@@ -76,6 +76,7 @@ impl SharedMemCommunicator {
             return TaskId::Unknown;
         }
         unsafe {
+            log::info!("TaskID: {}", ptr::read(self.memory.add(1)));
             Into::<TaskId>::into(ptr::read(self.memory.add(1)))
         }
     }
@@ -127,8 +128,9 @@ impl SharedMemCommunicator {
                     // log::info!("Waiting for response!");
                 },
                 TeeCommand::HostSend => {
-                    // log::info!("Received message");
+                    log::info!("Received message - Task {:?}, Command {:?}", self.get_task(), self.get_status());
                     self.still_waiting = false;
+                    unsafe{ self.write_status(TeeCommand::None.into()) };
                     return;
                 },
                 TeeCommand::Unknown(x) => log::info!("Found unknown status: {:#02x?}", x)
