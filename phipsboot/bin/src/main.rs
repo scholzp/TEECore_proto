@@ -157,8 +157,8 @@ extern "C" fn rust_entry64(
     //         items = items * 2;
     //     }
     // }
-    log::info!("Number of supported counters: {:?}",
-        CpuId::new().get_performance_monitoring_info().unwrap().number_of_counters());
+    // log::info!("Number of supported counters: {:?}",
+    //     CpuId::new().get_performance_monitoring_info().unwrap().number_of_counters());
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     loop {

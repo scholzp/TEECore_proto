@@ -5,6 +5,7 @@ pub enum TaskId {
     AttackReadMem = 0x02_u8,
     AttackWriteMem = 0x03_u8,
     AttackNopMem = 0x04_u8,
+    AttackIpi = 0x05_u8,
     Unknown = 0xff_u8,
 }
 
@@ -15,6 +16,7 @@ impl From<u8> for TaskId {
             0x02_u8 => TaskId::AttackReadMem,
             0x03_u8 => TaskId::AttackWriteMem,
             0x04_u8 => TaskId::AttackNopMem,
+            0x05_u8 => TaskId::AttackIpi,
             _ => TaskId::Unknown,
         }
     }
@@ -27,6 +29,7 @@ impl From<TaskId> for u8 {
            TaskId::AttackReadMem => 0x02_u8,
            TaskId::AttackWriteMem => 0x03_u8,
            TaskId::AttackNopMem => 0x04_u8,
+           TaskId::AttackIpi => 0x05_u8,
            TaskId::Unknown => 0xff_u8,
         }
     }

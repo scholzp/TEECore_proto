@@ -27,6 +27,7 @@ pub fn init_task_map() {
         TaskMap.insert(TaskId::AttackReadMem, Box::new(task_attack_read_mem));
         TaskMap.insert(TaskId::AttackWriteMem, Box::new(task_attack_write_mem));
         TaskMap.insert(TaskId::AttackNopMem, Box::new(task_attack_nop_mem));
+        TaskMap.insert(TaskId::AttackIpi, Box::new(task_attack_ipi));
     }
 }
 
@@ -58,6 +59,41 @@ fn task_attack_read_mem(communicator: &mut SharedMemCommunicator) {
 fn task_attack_nop_mem(communicator: &mut SharedMemCommunicator) {
     task_mem_helper(communicator);
     communicator.set_task(TaskId::AttackNopMem);
+    communicator.set_status(TeeCommand::TeeSend);
+}
+
+fn task_attack_ipi(communicator: &mut SharedMemCommunicator) {
+    use alloc::alloc::{alloc, Layout};
+    // We have one byte status field and 8 byte physical address that are
+    // stored in the shared memory.
+
+    // first get memory and the respective physical address
+    let mut payload_mem = unsafe { communicator.get_slice() };
+    // We want to fill 4 KiB of memory
+    let num_elements : usize = 0x1 << 12;
+    let address_offset = 2;
+    let secret : u32 = 0x1337_beef;
+
+    // First byte denote if vector was initialized
+    if 0 == payload_mem[0] {
+        // Create a vecotr with capacity to make sure that all is done with one
+        //allocation
+        let secret_ptr = unsafe {
+            alloc(Layout::from_size_align(4, 4).unwrap()) as *mut u32
+        };
+        unsafe {
+            ptr::write_volatile(secret_ptr, 0x1337_beef_u32);
+        }
+        unsafe {
+            ptr::write_volatile(
+                payload_mem.as_mut_ptr().add(address_offset) as *mut u64,
+                paging::get_physical_address(secret_ptr as u64)
+            );
+        }
+        // info!("Initialized vector: {:#016x?} -> {:#016x?}", data_ptr as u64, unsafe{ paging::get_physical_address(data_ptr as u64) });
+        payload_mem[0] = 1;
+    }
+    communicator.set_task(TaskId::AttackIpi);
     communicator.set_status(TeeCommand::TeeSend);
 }
 
