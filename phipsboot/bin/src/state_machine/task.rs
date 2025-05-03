@@ -45,19 +45,19 @@ fn task_ping(communicator: &mut SharedMemCommunicator) {
 
 
 fn task_attack_write_mem(communicator: &mut SharedMemCommunicator) {
-    task_mem_helper(communicator);
+    task_mem_helper(communicator, true);
     communicator.set_task(TaskId::AttackWriteMem);
     communicator.set_status(TeeCommand::TeeSend);
 }
 
 fn task_attack_read_mem(communicator: &mut SharedMemCommunicator) {
-    task_mem_helper(communicator);
+    task_mem_helper(communicator, true);
     communicator.set_task(TaskId::AttackReadMem);
     communicator.set_status(TeeCommand::TeeSend);
 }
 
 fn task_attack_nop_mem(communicator: &mut SharedMemCommunicator) {
-    task_mem_helper(communicator);
+    task_mem_helper(communicator, false);
     communicator.set_task(TaskId::AttackNopMem);
     communicator.set_status(TeeCommand::TeeSend);
 }
@@ -97,13 +97,14 @@ fn task_attack_ipi(communicator: &mut SharedMemCommunicator) {
     communicator.set_status(TeeCommand::TeeSend);
 }
 
-fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
+fn task_mem_helper(communicator: &mut SharedMemCommunicator, read: bool) {
     use alloc::alloc::{alloc, Layout};
     // We have one byte status field and 8 byte physical address that are
     // stored in the shared memory.
 
     // first get memory and the respective physical address
     let mut payload_mem = unsafe { communicator.get_slice() };
+    let task = communicator.get_task();
     // We want to fill 4 KiB of memory
     let num_elements : usize = 0x1 << 12;
     let address_offset = 2;
@@ -126,7 +127,7 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
                 paging::get_physical_address(data_ptr as u64)
             );
         }
-        // info!("Initialized vector: {:#016x?} -> {:#016x?}", data_ptr as u64, unsafe{ paging::get_physical_address(data_ptr as u64) });
+        info!("Initialized vector: {:#016x?} -> {:#016x?}", data_ptr as u64, unsafe{ paging::get_physical_address(data_ptr as u64) });
         payload_mem[0] = 1;
     } else {
         unsafe {
@@ -134,14 +135,15 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator) {
             use core::arch::asm;
 
             let mut hash: u32 = 0;
+            let mut current_value: u32 = 0;
             let data_ptr = paging::get_virtual_address(
                 ptr::read_volatile(payload_mem.as_mut_ptr().add(address_offset) as *mut u64)
             ) as *mut u32;
             for x in 0..(num_elements / 4) {
-                // let value = ptr::read_volatile(data_ptr.add(x));
-                // hash += value + 1;
-                // ptr::write_volatile(data_ptr.add(x), value + 1);
-                ptr::write_volatile(data_ptr.add(x), x as u32);
+                current_value = if true == read {ptr::read_volatile(data_ptr.add(x))} else { 0 };
+                if TaskId::AttackWriteMem == task {
+                    ptr::write_volatile(data_ptr.add(x), current_value + 1);
+                }
             }
         }
     }
