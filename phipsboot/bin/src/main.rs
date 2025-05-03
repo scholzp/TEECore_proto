@@ -51,6 +51,7 @@ extern "C" fn rust_entry64(
 ) -> ! {
     // The order of the init functions mostly reflect actual dependencies!
     idt::init();
+    x86_64::instructions::interrupts::enable();
     mem::init(load_addr_offset);
     logger::init(); // after mem init; logger depends on heap!
     logger::add_backend(driver::DebugconLogger::default()).unwrap();
@@ -78,6 +79,21 @@ extern "C" fn rust_entry64(
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
     let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
+    unsafe {
+        log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
+        let virt_lapic = unsafe {
+            paging::map_phys_rel_base_addr(
+                PhysAddr::from(apic_page),
+                1,
+                VirtAddr::from(l1_addr),
+                0x3 | (0x1 << 5)
+            )
+        };
+        log::info!("Virtual lapic after map_phys_rel_base_addr(): {:#016x?}", Into::<u64>::into(virt_lapic));
+        let icr_l : u64 = 0x300;
+        core::ptr::write((Into::<u64>::into(virt_lapic) + icr_l) as *mut u32, 0xc0400);
+        // log::info!("Still alive");
+    }
     // make the L! page table available for translation
     unsafe { paging::use_l1_page_table(l1_addr as u64) };
 
