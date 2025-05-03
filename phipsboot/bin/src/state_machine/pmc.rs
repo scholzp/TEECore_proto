@@ -4,7 +4,7 @@ use lib::pmc_utils::vendor;
 use lib::pmc_utils::intel;
 use lib::pmc_utils::architectural;
 
-const COUNTER_NUM: usize = 3;
+const COUNTER_NUM: usize = 4;
 const COUNTER_NUM_P: usize = 3 + 1;
 
 pub fn setup_pmcs() {
@@ -14,7 +14,7 @@ pub fn setup_pmcs() {
 		return;
 	}
 	setup_architecturial();
-	setup_offcore();
+	// setup_offcore();
 }
 
 fn setup_offcore() {
@@ -36,7 +36,12 @@ fn setup_offcore() {
         // 0x0_u64 | (0x1 << 18) | (0x1 << 19) | (0x1 << 20) // Spulier = L3
         // | (0x1 << 34) | (0x1 << 36) // SNOOP_HITM & SNOOP_HIT_NO_FW
         // | (0x1 << 0) | (0x1 << 1) | (0x1 << 2) // DATA_RD, RFO, CODE_RD
-        0x10800_u64
+        // 0b0000_0000_0000_0000_0000_0000_0000_0001_0000_0000_0001_1100_0010_1111_1011_0111
+        //63   59   55   51   47   43   39   35   31   27   23   19   15   11   7    3
+        // 0x3FBFC00002// L3 MISS -> 1
+        // 0x8003C0001 // L3 snoop hit -> 1
+        // 0x10003C0002 // L3 HITM -> 1
+        0x184000001
 	);
 	counter.activate_counter(0x0_u64);
 }
@@ -54,7 +59,7 @@ fn setup_architecturial() {
 		EVENT_ICELAKE_L1D_REPLACEMENT,
 		EVENT_ICELAKE_MEM_LOAD_RETIRED_L1_MISS_ANY,
 		EVENT_ICELAKE_MEM_LOAD_RETIRED_L1_MISS,
-		IA32_PERFEVTSEL_OS, IA32_PERFEVTSEL_USR
+		IA32_PERFEVTSEL_OS, IA32_PERFEVTSEL_USR, IA32_PERFEVTSEL_INT
 	};
 
     let mut counters: [ArchitecturalEventCounter; COUNTER_NUM] = [ArchitecturalEventCounter::new(0); COUNTER_NUM];
@@ -62,13 +67,16 @@ fn setup_architecturial() {
         counters[x].set_index(x as u8);
     }
 
-	counters[0].set_configuration(EVENT_ICELAKE_L1D_REPLACEMENT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
-	counters[1].set_configuration(EVENT_ICELAKE_MEM_LOAD_RETIRED_L1_HIT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
-	counters[2].set_configuration(EVENT_ICELAKE_OFFCORE_ALL_REQUESTS | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
-	// counters[3].set_configuration(EVENT_ICELAKE_MEM_LOAD_RETIRED_L1_MISS_ANY | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
+    let TEST_EVENT: u64 = 0xd1_u64 | 0x10_u64 << 8;
+    let TEST_EVENT2: u64 = 0xd2_u64 | 0x08_u64 << 8; // L3 Hits without snoops
+
+	counters[0].set_configuration(EVENT_ICELAKE_L1D_REPLACEMENT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR | IA32_PERFEVTSEL_INT);
+	counters[1].set_configuration(EVENT_ICELAKE_MEM_LOAD_RETIRED_L1_HIT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR | IA32_PERFEVTSEL_INT);
+	counters[2].set_configuration(TEST_EVENT2 | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR | IA32_PERFEVTSEL_INT);
+	counters[3].set_configuration(TEST_EVENT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR | IA32_PERFEVTSEL_INT);
 
     for x in 0..COUNTER_NUM {
-        counters[x].activate_counter(0);
+        counters[x].activate_counter(u64::MAX);
     }
 }
 
