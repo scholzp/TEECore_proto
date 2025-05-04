@@ -79,6 +79,8 @@ extern "C" fn rust_entry64(
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
     let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
+    // make the L! page table available for translation
+    unsafe { paging::use_l1_page_table(l1_addr as u64) };
     unsafe {
         log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
         let virt_lapic = unsafe {
@@ -90,12 +92,19 @@ extern "C" fn rust_entry64(
             )
         };
         log::info!("Virtual lapic after map_phys_rel_base_addr(): {:#016x?}", Into::<u64>::into(virt_lapic));
-        let icr_l : u64 = 0x300;
-        core::ptr::write((Into::<u64>::into(virt_lapic) + icr_l) as *mut u32, 0xc0400);
-        // log::info!("Still alive");
+        let lvt_pcr_offset: u64 = 0x340;
+        let lvt_pcr_ptr: *mut u32 = (Into::<u64>::into(virt_lapic) + lvt_pcr_offset) as *mut u32;
+        let lvt_pcr_content = core::ptr::read(lvt_pcr_ptr);
+        log::info!("Content of LVT PCR: {:#010x}", lvt_pcr_content);
+        // Check if LVT PCR is supported. If so, the read should not return 0 because Mask bit is either set or
+        // the vector field is not zero.
+        if 0 != lvt_pcr_content {
+            // Content to write to LVT PCR: Masked | Delivery Mode | Vector
+            let lvt_pcr_new : u32 = 0x0_u32 | 0b0 << 16 | 0b100 << 8 | 0x40;
+            core::ptr::write(lvt_pcr_ptr, lvt_pcr_new);
+            log::info!("Updated LVT PCR to: {:#010x}", core::ptr::read(lvt_pcr_ptr));
+        }
     }
-    // make the L! page table available for translation
-    unsafe { paging::use_l1_page_table(l1_addr as u64) };
 
     let mbi_addr : u64 = *(env::BOOT_INFO_PTR.get().unwrap());
     let mbi_virt = unsafe { Into::<u64>::into(
