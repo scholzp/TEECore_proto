@@ -120,8 +120,9 @@ pub unsafe fn use_l1_page_table(table_addr: u64) {
 
 /// returns a non cryptographic 64 bit hash so this doesn't get optimized away
 pub unsafe fn touch_all_present_pages() -> u64 {
+    use crate::logger;
     let mut result: u64 = 0;
-    let l1_address_bits = LAST_L1 & & L1_ADDRESS_BITS_MASK;
+    let l1_address_bits = LAST_L1 & L1_ADDRESS_BITS_MASK;
     for x in 0..512 {
         // read the x-th page table entry of L1 pt
         let pt_entry = ptr::read((LAST_L1 as *mut u64).add(x));
@@ -129,9 +130,10 @@ pub unsafe fn touch_all_present_pages() -> u64 {
         if 1 == (pt_entry & 0x1_u64) {
             // generate virtual address of first byte in the mapped page from L1
             // PT and the index
-            let first_qword = (l1_address_bits | ((x as u64) << 12)) as *mut u64;
-            for i in 0..512 {
-                result = result.wrapping_add(ptr::read_volatile(first_qword));
+            let first_qword = (l1_address_bits | ((x as u64) << 12)) as *mut u32;
+            for i in 0..1024 {
+                let target_address = first_qword.add(i);
+                result = result.wrapping_add(ptr::read_volatile(target_address) as u64);
             }
             result += 1;
         }
