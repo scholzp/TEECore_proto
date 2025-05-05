@@ -85,7 +85,8 @@ mod exception_handlers {
 
     pub extern "x86-interrupt" fn nmi(stack_frame: InterruptStackFrame) {
         let tsc = unsafe{ core_x86::_rdtsc() };
-        log::error!("exception: 0x2 debug, stack_frame={stack_frame:#?}, tsc={tsc:#?}");
+        log::error!("tsc={tsc:#?}");
+        log::error!("exception: 0x2 debug, stack_frame={stack_frame:#?}");
         loop {}
     }
 
