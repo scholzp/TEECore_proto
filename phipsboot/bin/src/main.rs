@@ -50,7 +50,7 @@ extern "C" fn rust_entry64(
     load_addr_offset: i64,
 ) -> ! {
     // The order of the init functions mostly reflect actual dependencies!
-    idt::init();
+    // idt::init();
     x86_64::instructions::interrupts::enable();
     mem::init(load_addr_offset);
     logger::init(); // after mem init; logger depends on heap!
@@ -64,12 +64,6 @@ extern "C" fn rust_entry64(
     env::print();
     stack::assert_sanity_checks();
 
-    log::info!("Now loading your kernel into 64-bit mode...");
-    log::info!("Not implemented yet! =(");
-
-    // break_stack();
-    //create_pagefault();
-
     // Read the APIC's address from the respective MSR
     let apic_base_content = unsafe {
         msr::rdmsr(msr::APIC_BASE)
@@ -81,17 +75,19 @@ extern "C" fn rust_entry64(
     let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
     // make the L! page table available for translation
     unsafe { paging::use_l1_page_table(l1_addr as u64) };
+
+    log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
+    let virt_lapic = unsafe {
+        paging::map_phys_rel_base_addr(
+            PhysAddr::from(apic_page),
+            1,
+            VirtAddr::from(l1_addr),
+            0x3 | (0x1 << 4) // Cache Disable
+        )
+    };
     unsafe {
-        log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
-        let virt_lapic = unsafe {
-            paging::map_phys_rel_base_addr(
-                PhysAddr::from(apic_page),
-                1,
-                VirtAddr::from(l1_addr),
-                0x3 | (0x1 << 5)
-            )
-        };
         log::info!("Virtual lapic after map_phys_rel_base_addr(): {:#016x?}", Into::<u64>::into(virt_lapic));
+        // pcr = performance counter register
         let lvt_pcr_offset: u64 = 0x340;
         let lvt_pcr_ptr: *mut u32 = (Into::<u64>::into(virt_lapic) + lvt_pcr_offset) as *mut u32;
         let lvt_pcr_content = core::ptr::read(lvt_pcr_ptr);
@@ -99,10 +95,11 @@ extern "C" fn rust_entry64(
         // Check if LVT PCR is supported. If so, the read should not return 0 because Mask bit is either set or
         // the vector field is not zero.
         if 0 != lvt_pcr_content {
+            core::ptr::write_volatile((Into::<u64>::into(virt_lapic) + 0x0f0) as *mut u32, 0x1FF);
             // Content to write to LVT PCR: Masked | Delivery Mode | Vector
-            let lvt_pcr_new : u32 = 0x0_u32 | 0b0 << 16 | 0b100 << 8 | 0x40;
-            core::ptr::write(lvt_pcr_ptr, lvt_pcr_new);
-            log::info!("Updated LVT PCR to: {:#010x}", core::ptr::read(lvt_pcr_ptr));
+            let lvt_pcr_new : u32 = 0x0_u32 | 0b0 << 16 | 0b100 << 8 | 0x0;
+            core::ptr::write_volatile(lvt_pcr_ptr, lvt_pcr_new);
+            log::info!("Updated LVT PCR to: {:#010x}", core::ptr::read_volatile(lvt_pcr_ptr));
         }
     }
 
@@ -150,6 +147,7 @@ extern "C" fn rust_entry64(
             mmap_shared_entry.size() as usize,
         )
     };
+    log::info!("Init taskmap...");
     init_task_map();
 
     // unsafe {
@@ -187,9 +185,12 @@ extern "C" fn rust_entry64(
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     loop {
+        log::info!("LVT: {:#010x?} ESR: {:#010x?}", unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x340) as *mut u32) }, unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0xf0) as *mut u32) });
         pmc::setup_pmcs();
+        log::info!("LVT: {:#010x?} ESR: {:#010x?}", unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x340) as *mut u32) }, unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x280) as *mut u32) });
         state_machine = state_machine::run_state_machine(state_machine);
         pmc::read_and_print_pmcs();
+        log::info!("LVT: {:#010x?} ESR: {:#010x?}", unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x340) as *mut u32) }, unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x280) as *mut u32) });
     }
     loop {}
 }
