@@ -76,6 +76,9 @@ extern "C" fn rust_entry64(
     // make the L! page table available for translation
     unsafe { paging::use_l1_page_table(l1_addr as u64) };
 
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+    pmc::setup_pmcs();
+
     log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
     let virt_lapic = unsafe {
         paging::map_phys_rel_base_addr(
@@ -150,47 +153,11 @@ extern "C" fn rust_entry64(
     log::info!("Init taskmap...");
     init_task_map();
 
-    // unsafe {
-    //     use alloc::alloc::{alloc, Layout};
-    //     use core::ptr;
-    //     use core::arch::asm;
-
-    //     let data_ptr = unsafe {
-    //         alloc(Layout::from_size_align(1024 * 64, 4096).unwrap()) as *mut u32
-    //     };
-    //     let mut items = 1024;
-    //     for a in 0..6 {
-    //         log::info!("Num 32 bit elements: {:?}", items);
-    //         for b in 0..5 {
-    //             pmc::setup_pmcs();
-    //             for c in 0..(items / 4)
-    //             {
-    //                 asm!(
-    //                     "clflush [{tpm}]",
-    //                     tpm = in(reg) (data_ptr.add(c) as *const u8),
-    //                 );
-    //             }
-    //             asm!("mfence");
-    //             for c in 0..(items / 4)
-    //             {
-    //                 ptr::write_volatile(data_ptr.add(c), ptr::read_volatile(data_ptr.add(c)) as u32);
-    //             }
-    //             pmc::read_and_print_pmcs();
-    //         }
-    //         items = items * 2;
-    //     }
-    // }
-    // log::info!("Number of supported counters: {:?}",
-    //     CpuId::new().get_performance_monitoring_info().unwrap().number_of_counters());
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
-    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+
     loop {
-        log::info!("LVT: {:#010x?} ESR: {:#010x?}", unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x340) as *mut u32) }, unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0xf0) as *mut u32) });
-        pmc::setup_pmcs();
-        log::info!("LVT: {:#010x?} ESR: {:#010x?}", unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x340) as *mut u32) }, unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x280) as *mut u32) });
         state_machine = state_machine::run_state_machine(state_machine);
         pmc::read_and_print_pmcs();
-        log::info!("LVT: {:#010x?} ESR: {:#010x?}", unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x340) as *mut u32) }, unsafe { core::ptr::read((Into::<u64>::into(virt_lapic) +0x280) as *mut u32) });
     }
     loop {}
 }

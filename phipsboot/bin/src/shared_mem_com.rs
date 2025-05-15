@@ -76,7 +76,6 @@ impl SharedMemCommunicator {
             return TaskId::Unknown;
         }
         unsafe {
-            log::info!("TaskID: {}", ptr::read(self.memory.add(1)));
             Into::<TaskId>::into(ptr::read(self.memory.add(1)))
         }
     }
