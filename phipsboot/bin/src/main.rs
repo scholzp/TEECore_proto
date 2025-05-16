@@ -50,8 +50,8 @@ extern "C" fn rust_entry64(
     load_addr_offset: i64,
 ) -> ! {
     // The order of the init functions mostly reflect actual dependencies!
-    // idt::init();
-    x86_64::instructions::interrupts::enable();
+    idt::init();
+    //x86_64::instructions::interrupts::enable();
     mem::init(load_addr_offset);
     logger::init(); // after mem init; logger depends on heap!
     logger::add_backend(driver::DebugconLogger::default()).unwrap();

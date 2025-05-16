@@ -36,7 +36,7 @@ test:
 
 .PHONY: integration-test
 integration-test: phipsboot
-	cd integration-test && ./build_bootable_img.sh --phipsboot="$(BUILD_DIR)/phipsboot.elf64" --out-path="$(BUILD_DIR)"
+	cd integration-test && ./build_bootable_img.sh --phipsboot="$(BUILD_DIR)/phipsboot.elf32" --out-path="$(BUILD_DIR)"
 	cd integration-test && ./run_iso_in_qemu.sh --iso="$(BUILD_DIR)/phipsboot.grub-mb2.iso"
 
 

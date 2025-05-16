@@ -155,6 +155,7 @@ bit64_trampoline:
     mov  (STACK_TOP_PTR),  %rsp  # set the aligned stack top ptr as stack
 
     movabs  $rust_entry64, %rax
+
     jmp  *%rax  # Absolute jump to link address of high-level code.
     ud2
 

@@ -10,7 +10,18 @@ pub const ALIGNMENT: usize = 16;
 pub const MIN_STACK_SIZE: usize = ALIGNMENT;
 
 /// Default stack size.
-pub const DEFAULT_STACK_SIZE: usize = 0x10000 /* 64 KiB */;
+pub const DEFAULT_STACK_SIZE: usize = 12 * 0x10000 /* 64 KiB */ + 26_976 - (4072); // Okay
+// pub const DEFAULT_STACK_SIZE: usize = 12 * 0x10000 /* 64 KiB */ + 26_976 - (4071); // Broken
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 0); // Override
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 1); // Invalid Op
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 2); // OV
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 4); // OV
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 6); // OV
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 7); // OV
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 8); // Broke
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 10); // Broke
+// pub const DEFAULT_STACK_SIZE: usize = 14 * 0x10000 /* 64 KiB */ + 26_976 - (4071) - (4096 * 14); // Broke
+
 
 /// Error that indicates the stack canary was violated.
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]

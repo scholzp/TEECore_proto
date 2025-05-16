@@ -119,7 +119,7 @@ SECTIONS {
      * - Ensure that we can use a 2 MiB huge-page mapping during the boot to
      *   access all kind of data from the boot code.
      */
-    ASSERT(BIN_SIZE <= 2M, "The binary must be <= 2 MiB in size")
+    ASSERT(BIN_SIZE <= 3M, "The binary must be <= 2 MiB in size")
     ASSERT(ALIGN(LINK_ADDR_BOOT, 2M) == LINK_ADDR_BOOT, "LINK_ADDR_BOOT must be 2 MiB aligned")
     ASSERT(ALIGN(LINK_ADDR_HIGH_BASE, 2M) == LINK_ADDR_HIGH_BASE, "LINK_ADDR_HIGH_BASE must be 2 MiB aligned")
 

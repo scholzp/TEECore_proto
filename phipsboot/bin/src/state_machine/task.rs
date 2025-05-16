@@ -16,6 +16,9 @@ static mut TaskMap: Safe<BTreeMap<TaskId, Box<dyn Fn(&mut SharedMemCommunicator)
 
 static mut COMMUNICATOR: Option<Box<SharedMemCommunicator>> = None;
 
+// const NUM_ARRAY_ELEMENTS: usize = 510 * 1024 / 8;
+// static mut TEST_ARRAY: [u64; NUM_ARRAY_ELEMENTS] = [1337_u64; NUM_ARRAY_ELEMENTS];
+
 pub fn init_task_map() {
     unsafe {
         // if true == COMMUNICATOR.is_none() {
@@ -37,6 +40,14 @@ fn task_ping(communicator: &mut SharedMemCommunicator) {
     let mut payload_mem = unsafe { communicator.get_slice() };
     payload_mem[0] += 1;
 
+    // for i in 0..NUM_ARRAY_ELEMENTS {
+    //     unsafe {
+    //         // ptr::write_volatile(
+    //         //     TEST_ARRAY.as_mut_ptr().add(i),
+    //         // );
+    //         ptr::read_volatile(TEST_ARRAY.as_ptr().add(i));
+    //     }
+    // }
 
     communicator.set_task(TaskId::Ping);
     communicator.set_status(TeeCommand::TeeSend);

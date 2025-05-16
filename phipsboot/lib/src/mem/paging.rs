@@ -15,7 +15,9 @@ static mut LAST_L1: u64 = 0;
 
 /// Index into the last used L1 table to use for next mapping
 /// This uses the assumption that the last 128 entries are free
+static mut CAN_1: u64 = 0xdead_beef_1337_1337_u64;
 static mut LAST_L1_INDEX: usize = 384-1;
+static mut CAN_2: u64 = 0xdead_beef_1337_1337_u64;
 
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Hash, Eq, Ord)]
 pub enum Level {
@@ -115,7 +117,7 @@ impl VirtAddr {
 fn _map_single_entry(_src: VirtAddr, _dest: PhysAddr, _flags: u64) {}
 
 pub unsafe fn use_l1_page_table(table_addr: u64) {
-    LAST_L1 = table_addr
+    LAST_L1 = table_addr;
 }
 
 /// returns a non cryptographic 64 bit hash so this doesn't get optimized away
@@ -185,22 +187,22 @@ pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, size: usize, pml1: VirtAddr,
 
     let pml1_addr : u64 = pml1.into();
     let mut pages_to_map = size;
-    while (LAST_L1_INDEX < 512) && (false == mapped) {
+    log::info!("LAST_L1_INDEX phys: {:#018x}, virt: {:#018x}", get_physical_address((ptr::addr_of!(LAST_L1_INDEX) as u64) ), ptr::addr_of!(LAST_L1_INDEX) as u64);
+    while (LAST_L1_INDEX < 512) && (false == mapped) && (0 < pages_to_map) {
         let pm_entry = ptr::read((pml1_addr as *mut u64).add(LAST_L1_INDEX));
         // Check present bit
         if 0 == (pm_entry & 0x1) {
             // Create virtual address from start of the contiguous page block
             result = ((pml1_addr & (!0x1FFFFFu64)) + ((LAST_L1_INDEX as u64) << 12)) as u64;
-            while (0 < pages_to_map) && (LAST_L1_INDEX < 512) {
-                ptr::write(
-                    (pml1_addr as *mut u64).add(LAST_L1_INDEX) as *mut u64,
-                    (Into::<u64>::into(src) & ( & (!0xFFFu64))) | flags,
-                );
-                LAST_L1_INDEX += 1;
-                pages_to_map -= 1;
-            }
+            ptr::write(
+                (pml1_addr as *mut u64).add(LAST_L1_INDEX) as *mut u64,
+                (Into::<u64>::into(src) & (!0xFFFu64)) | flags,
+            );
+            log::info!("Write to virt: {:#018x}", (pml1_addr as *mut u64).add(LAST_L1_INDEX) as u64);
+            pages_to_map -= 1;
             mapped = true;
         }
+        log::info!("Last index: {:#?}", LAST_L1_INDEX);
         LAST_L1_INDEX += 1;
     }
     VirtAddr::from(result)
