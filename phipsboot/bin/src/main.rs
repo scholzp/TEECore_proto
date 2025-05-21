@@ -73,6 +73,7 @@ extern "C" fn rust_entry64(
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
     let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
+    log::info!("l1_addr {:#?}", l1_addr);
     // make the L! page table available for translation
     unsafe { paging::use_l1_page_table(l1_addr as u64) };
 

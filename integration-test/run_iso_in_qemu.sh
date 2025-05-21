@@ -18,7 +18,7 @@ qemu-system-x86_64 \
     "-d" "int,cpu_reset" \
     -boot d \
     -cdrom "$argc_iso" \
-    -m 32m \
+    -m 3G \
     -debugcon stdio \
     -no-reboot \
     -device isa-debug-exit,iobase=0xf4,iosize=0x04
