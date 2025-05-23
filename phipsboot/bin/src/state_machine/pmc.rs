@@ -42,7 +42,7 @@ fn setup_architecturial() {
 		counters[x].set_index(x as u8);
 	}
 
-    let event_l1i_stalls: u64 = 0x80_u64 | 0x04_u64 << 8;
+    let event_l1i_stalls: u64 = 0xC6_u64 | 0x01_u64 << 8;
 	let event_l2_hit: u64 = 0xd1_u64 | 0x02_u64 << 8;
 	let event_l3_hit: u64 = 0xd1_u64 | 0x04_u64 << 8;
 
