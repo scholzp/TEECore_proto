@@ -98,9 +98,10 @@ entry_common:
     M_MAP_HIGH_ADDR  3 LINK_ADDR_RX_PTR boot_mem_pt_l3_hi boot_mem_pt_l2_hi 0x3
     M_MAP_HIGH_ADDR  2 LINK_ADDR_RX_PTR boot_mem_pt_l2_hi boot_mem_pt_l1_hi 0x3
 
-    # At this level, page-table levels of RX, RO, and RW differ.
-    M_MAP_HIGH_ADDR  1 LINK_ADDR_RX_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x1
-    M_MAP_HIGH_ADDR  1 LINK_ADDR_RO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x1)
+    # To transfer cache lines to modified state on demand, all memory needs to
+    # be writeable
+    M_MAP_HIGH_ADDR  1 LINK_ADDR_RX_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x3
+    M_MAP_HIGH_ADDR  1 LINK_ADDR_RO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x3)
     M_MAP_HIGH_ADDR  1 LINK_ADDR_RW_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x3)
     M_MAP_HIGH_ADDR  1 L1_HI_INFO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x3
 
