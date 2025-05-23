@@ -15,7 +15,7 @@ static mut LAST_L1: u64 = 0;
 
 /// Index into the last used L1 table to use for next mapping
 /// This uses the assumption that the last 128 entries are free
-static mut LAST_L1_INDEX: usize = 384-1;
+static mut LAST_L1_INDEX: usize = 0;
 
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Hash, Eq, Ord)]
 pub enum Level {
@@ -206,6 +206,52 @@ pub unsafe fn map_phys_rel_base_addr(src: PhysAddr, size: usize, pml1: VirtAddr,
         LAST_L1_INDEX += 1;
     }
     VirtAddr::from(result)
+}
+
+/// This function allocates all pages not used by anything else as contiguous
+/// heap. The contiguous memory is found by a simple assumption: When this
+/// function is called, all mappings are already done in page table to the
+/// lowest n indices. We can find n by finding the page with the highest index
+/// with the present bit set. From this page on, we can reserve all higher page
+/// table entries for heap. In the project this branch of the project is used,
+/// we can furthermore safely assume that all of the 2 MiB memory space is
+/// available and owned by us. DO NOT USE THIS IF THESE ASSUMPTIONS DO NOT
+/// REFLECT YOUR USE CASE!!111! Returns a tuple containing the virtual address
+/// of the first mapped page and the number of pages mapped in this contiguous
+/// block.
+pub unsafe fn alloc_heap_pages(pml1_addr: u64, start_addr: u64, max_size: usize) -> (u64, usize) {
+    use x86::controlregs::cr3;
+
+    let pml1_ptr = pml1_addr as *mut u64;
+    let mut last_present_index = 0;
+    let mut number_allocated_pages = 0_usize;
+    for x in 0..512 {
+        if 1 == (ptr::read(pml1_ptr.add(x)) & (0x1))  {
+            last_present_index = x;
+        }
+    }
+    if last_present_index != 0 {
+        for x in (last_present_index + 1)..512 {
+            ptr::write(
+                pml1_ptr.add(x),
+                start_addr + ((0x1000 * x) as u64) | 0x3
+            );
+            number_allocated_pages += 1;
+            if (number_allocated_pages * 0x1000) >= max_size {
+                break;
+            }
+        }
+        let result = ((pml1_addr & (!0x1FFFFFu64)) + (((last_present_index + 1) as u64) << 12)) as u64;
+        return (
+            result,
+            number_allocated_pages * 0x1000
+        );
+    } else {
+        return (
+            0_u64,
+            0
+        );
+    }
 }
 
 

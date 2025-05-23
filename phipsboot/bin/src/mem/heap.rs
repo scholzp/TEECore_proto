@@ -1,15 +1,36 @@
 //! Abstraction for managing memory of the system and the loader.
 
 /// Size of the heap.
-const SIZE: usize = 0x20000 /* 128 KiB */;
-
+const FALLBACK_HEAP_SIZE: usize = 0x8000 /* 32 KiB */;
+/// Maximal size of the heap when allocating free pages
+const MAX_HEAP_SIZE: usize = 0x8000 << 6; /* x * 32 KiB */
 /// Backing memory for the heap.
-static mut HEAP: [u8; SIZE] = [0; SIZE];
+static mut FALLBACK_HEAP: [u8; FALLBACK_HEAP_SIZE] = [0; FALLBACK_HEAP_SIZE];
+/// Tracks the current heap size
+static mut CURRENT_HEAP_SIZE: usize = 0;
+
 
 #[global_allocator]
 static ALLOC: good_memory_allocator::SpinLockedAllocator =
     good_memory_allocator::SpinLockedAllocator::empty();
 
-pub fn init() {
-    unsafe { ALLOC.init(HEAP.as_ptr() as usize, SIZE) }
+pub fn init(l1_virt: u64, l1_phy: u64) {
+    unsafe {
+        use lib::mem::paging::alloc_heap_pages;
+        let (start_addr, size) = alloc_heap_pages(l1_virt, l1_phy & (!0x1FFFFFu64), MAX_HEAP_SIZE);
+        if size > FALLBACK_HEAP_SIZE {
+            ALLOC.init(start_addr as usize, size);
+            CURRENT_HEAP_SIZE = size;
+        } else {
+            ALLOC.init(FALLBACK_HEAP.as_ptr() as usize, FALLBACK_HEAP_SIZE);
+            CURRENT_HEAP_SIZE = FALLBACK_HEAP_SIZE;
+        }
+    }
+}
+
+/// Returns the current heap size
+pub fn get_curr_heap_size() -> usize {
+    unsafe {
+        CURRENT_HEAP_SIZE
+    }
 }

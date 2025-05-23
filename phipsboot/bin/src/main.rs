@@ -47,13 +47,16 @@ extern "C" fn rust_entry64(
 ) -> ! {
     // The order of the init functions mostly reflect actual dependencies!
     idt::init();
-    // x86_64::instructions::interrupts::enable();
-    mem::init(load_addr_offset);
+    // // x86_64::instructions::interrupts::enable();
+    let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
+    unsafe { paging::use_l1_page_table(l1_addr as u64) };
+    mem::init(load_addr_offset, l1_addr as u64);
     logger::init(); // after mem init; logger depends on heap!
     logger::add_backend(driver::DebugconLogger::default()).unwrap();
     logger::add_backend(driver::SerialLogger::default()).unwrap();
     logger::flush(); // flush all buffered messages
     log::info!("Logging works");
+    log::info!("Current Heap Size: {:#018x}", mem::get_current_heap_size());
 
     env::init(bootloader_magic, bootloader_info_ptr);
 
@@ -68,9 +71,7 @@ extern "C" fn rust_entry64(
     let apic_page = apic_base_content & (!0x0FFFu64);
     log::info!("APIC page: {:#016x}", apic_page);
     // Map the APIC page
-    let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
     // make the L! page table available for translation
-    unsafe { paging::use_l1_page_table(l1_addr as u64) };
 
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     pmc::setup_pmcs();
