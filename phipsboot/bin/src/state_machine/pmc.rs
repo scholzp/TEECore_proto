@@ -17,6 +17,7 @@ pub fn setup_pmcs() {
 	// setup_offcore();
 }
 
+#[allow(dead_code)]
 fn setup_offcore() {
 	use intel::MsrOffcoreRspEventCounter;
 

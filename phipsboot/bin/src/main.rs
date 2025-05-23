@@ -17,18 +17,14 @@ mod shared_mem_com;
 mod state_machine;
 
 use crate::mem::stack;
-use alloc::alloc::{dealloc, alloc, Layout};
 use core::fmt::Write;
 use core::hint::black_box;
-use core::ops::Deref;
 use core::panic::PanicInfo;
 use lib::logger;
 use lib::mem::paging;
 use lib::mem::paging::{PhysAddr, VirtAddr};
-use x86::{msr, apic};
-use x86::cpuid::CpuId;
+use x86::msr;
 use multiboot2::{BootInformation, BootInformationHeader, MemoryAreaTypeId};
-use crate::state_machine::*;
 use crate::state_machine::task::init_task_map;
 use crate::state_machine::pmc;
 
@@ -50,8 +46,8 @@ extern "C" fn rust_entry64(
     load_addr_offset: i64,
 ) -> ! {
     // The order of the init functions mostly reflect actual dependencies!
-    // idt::init();
-    x86_64::instructions::interrupts::enable();
+    idt::init();
+    // x86_64::instructions::interrupts::enable();
     mem::init(load_addr_offset);
     logger::init(); // after mem init; logger depends on heap!
     logger::add_backend(driver::DebugconLogger::default()).unwrap();
@@ -144,7 +140,7 @@ extern "C" fn rust_entry64(
     unsafe {core::ptr::write(shared_mem_virt as *mut u8, 1); }
     log::info!("Set message byte to: {:?}", unsafe {core::ptr::read(shared_mem_virt as *mut u8)});
 
-    let mut shared_mem_communicator = unsafe {
+    let shared_mem_communicator = unsafe {
         shared_mem_com::SharedMemCommunicator::from_raw_parts(
             shared_mem_virt as *mut u8,
             mmap_shared_entry.size() as usize,

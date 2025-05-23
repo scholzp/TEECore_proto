@@ -63,12 +63,7 @@ pub fn init() {
     }
 }
 
-pub fn set_nmi_handler(handler: HandlerFunc) {
-    let mut idt = IDT.borrow_mut();
-    idt.non_maskable_interrupt
-        .set_handler_fn(handler);
-}
-
+#[allow(dead_code)]
 mod exception_handlers {
     use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
     use core::arch::x86_64 as core_x86;

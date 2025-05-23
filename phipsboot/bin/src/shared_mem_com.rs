@@ -1,9 +1,5 @@
-
-use x86_64::structures::idt::HandlerFunc;
-use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::instructions::nop;
 
-use crate::idt::set_nmi_handler;
 use crate::state_machine::task_id::TaskId;
 
 use core::slice;
@@ -134,7 +130,7 @@ impl SharedMemCommunicator {
                 },
                 TeeCommand::Unknown(x) => log::info!("Found unknown status: {:#02x?}", x)
             }
-            for x in 0..(1024u64 * 1024 * 1024 * 10) {
+            for _x in 0..(1024u64 * 1024 * 1024 * 10) {
                 nop();
             }
         }

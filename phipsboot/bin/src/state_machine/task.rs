@@ -1,5 +1,4 @@
 use alloc::collections::BTreeMap;
-use alloc::sync::{Arc};
 use alloc::boxed::Box;
 use log::info;
 
@@ -11,30 +10,21 @@ use crate::shared_mem_com::SharedMemCommunicator;
 use crate::state_machine::task_id::TaskId;
 use crate::state_machine::TeeCommand;
 
-static mut TaskMap: Safe<BTreeMap<TaskId, Box<dyn Fn(&mut SharedMemCommunicator)>>> = Safe::new(
+static mut TASK_MAP: Safe<BTreeMap<TaskId, Box<dyn Fn(&mut SharedMemCommunicator)>>> = Safe::new(
     BTreeMap::new());
-
-static mut COMMUNICATOR: Option<Box<SharedMemCommunicator>> = None;
 
 pub fn init_task_map() {
     unsafe {
-        // if true == COMMUNICATOR.is_none() {
-        //     // TODO: proper error handling for singleton
-        //     return;
-        //  }
-        // COMMUNICATOR = Some(Box::new(communicator));
-        TaskMap.insert(TaskId::Ping, Box::new(task_ping));
-        TaskMap.insert(TaskId::AttackReadMem, Box::new(task_attack_read_mem));
-        TaskMap.insert(TaskId::AttackWriteMem, Box::new(task_attack_write_mem));
-        TaskMap.insert(TaskId::AttackNopMem, Box::new(task_attack_nop_mem));
-        TaskMap.insert(TaskId::AttackIpi, Box::new(task_attack_ipi));
+        TASK_MAP.insert(TaskId::Ping, Box::new(task_ping));
+        TASK_MAP.insert(TaskId::AttackReadMem, Box::new(task_attack_read_mem));
+        TASK_MAP.insert(TaskId::AttackWriteMem, Box::new(task_attack_write_mem));
+        TASK_MAP.insert(TaskId::AttackNopMem, Box::new(task_attack_nop_mem));
+        TASK_MAP.insert(TaskId::AttackIpi, Box::new(task_attack_ipi));
     }
 }
 
 fn task_ping(communicator: &mut SharedMemCommunicator) {
-    let count = 0;
-
-    let mut payload_mem = unsafe { communicator.get_slice() };
+    let payload_mem = unsafe { communicator.get_slice() };
     payload_mem[0] += 1;
 
 
@@ -68,9 +58,7 @@ fn task_attack_ipi(communicator: &mut SharedMemCommunicator) {
     // stored in the shared memory.
 
     // first get memory and the respective physical address
-    let mut payload_mem = unsafe { communicator.get_slice() };
-    // We want to fill 4 KiB of memory
-    let num_elements : usize = 0x1 << 12;
+    let payload_mem = unsafe { communicator.get_slice() };
     let address_offset = 2;
     let secret : u32 = 0x1337_beef;
 
@@ -82,7 +70,7 @@ fn task_attack_ipi(communicator: &mut SharedMemCommunicator) {
             alloc(Layout::from_size_align(4, 4).unwrap()) as *mut u32
         };
         unsafe {
-            ptr::write_volatile(secret_ptr, 0x1337_beef_u32);
+            ptr::write_volatile(secret_ptr, secret);
         }
         unsafe {
             ptr::write_volatile(
@@ -103,7 +91,7 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator, read: bool) {
     // stored in the shared memory.
 
     // first get memory and the respective physical address
-    let mut payload_mem = unsafe { communicator.get_slice() };
+    let payload_mem = unsafe { communicator.get_slice() };
     let task = communicator.get_task();
     // We want to fill 4 KiB of memory
     let num_elements : usize = 0x1 << 12;
@@ -131,11 +119,7 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator, read: bool) {
         payload_mem[0] = 1;
     } else {
         unsafe {
-            use crate::state_machine::pmc;
-            use core::arch::asm;
-
-            let mut hash: u32 = 0;
-            let mut current_value: u32 = 0;
+            let mut current_value: u32;
             let data_ptr = paging::get_virtual_address(
                 ptr::read_volatile(payload_mem.as_mut_ptr().add(address_offset) as *mut u64)
             ) as *mut u32;
@@ -151,7 +135,7 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator, read: bool) {
 
 pub fn execute_task(task_id: TaskId, communicator: &mut SharedMemCommunicator) {
     unsafe {
-        match TaskMap.get(&task_id) {
+        match TASK_MAP.get(&task_id) {
             Some(func) => func(communicator),
             None =>{
                 info!("No task");
