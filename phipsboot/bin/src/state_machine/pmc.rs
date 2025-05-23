@@ -47,6 +47,11 @@ fn setup_architecturial() {
 	let event_l3_hit: u64 = 0xd1_u64 | 0x04_u64 << 8;
 
 	counters[0].set_configuration(event_l1i_stalls | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
+    // We have to program MSR_PEBS_FRONTEND for the L1I Miss counter to work
+    unsafe {
+        use x86::msr::{wrmsr};
+        wrmsr(0x3f7, 0x12_u64);
+    }
 	counters[1].set_configuration(EVENT_ICELAKE_L1D_REPLACEMENT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	counters[2].set_configuration(event_l2_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	counters[3].set_configuration(event_l3_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
