@@ -52,8 +52,7 @@ fn setup_architecturial() {
 	counters[3].set_configuration(event_l3_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 
 	for x in 0..COUNTER_NUM {
-		counters[x].activate_counter(u64::MAX);
-        // counters[x].activate_counter(0);
+        counters[x].activate_counter(0);
 	}
 }
 
