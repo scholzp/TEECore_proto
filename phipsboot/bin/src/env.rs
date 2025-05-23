@@ -15,7 +15,6 @@ pub enum BootVariant {
 
 pub fn init(bootloader_magic: u64, bootloader_info_ptr: u64) {
     let boot_variant;
-    log::info!("1");
     if bootloader_magic == multiboot2::MAGIC as u64 {
         boot_variant = BootVariant::Multiboot2;
     } else if bootloader_magic == 0x2badB002 {
@@ -31,7 +30,6 @@ pub fn init(bootloader_magic: u64, bootloader_info_ptr: u64) {
         );
         boot_variant = BootVariant::Multiboot2;
     }
-    log::info!("2");
     BOOT_VARIANT.get_or_init(|| boot_variant);
     BOOT_INFO_PTR.get_or_init(|| bootloader_info_ptr);
 }
