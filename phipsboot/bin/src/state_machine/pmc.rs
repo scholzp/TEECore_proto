@@ -23,7 +23,7 @@ fn setup_offcore() {
 
 	let mut counter = MsrOffcoreRspEventCounter::new(0, 3);
 	counter.set_offcore_configuration(
-		0x184000001
+		0x10002
 	);
 	counter.activate_counter(0x0_u64);
 }
