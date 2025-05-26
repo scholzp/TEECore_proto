@@ -34,7 +34,7 @@ fn setup_architecturial() {
 		EVENT_ICELAKE_L1D_REPLACEMENT,
 		IA32_PERFEVTSEL_USR,
 		IA32_PERFEVTSEL_OS,
-        IA32_PERFEVTSEL_INT,
+		IA32_PERFEVTSEL_INT,
 	};
 
 	let mut counters: [ArchitecturalEventCounter; COUNTER_NUM] = [ArchitecturalEventCounter::new(0); COUNTER_NUM];
@@ -42,22 +42,22 @@ fn setup_architecturial() {
 		counters[x].set_index(x as u8);
 	}
 
-    let event_l1i_stalls: u64 = 0xC6_u64 | 0x01_u64 << 8;
+	let event_l1i_stalls: u64 = 0xC6_u64 | 0x01_u64 << 8;
 	let event_l2_hit: u64 = 0xd1_u64 | 0x02_u64 << 8;
 	let event_l3_hit: u64 = 0xd1_u64 | 0x04_u64 << 8;
 
 	counters[0].set_configuration(event_l1i_stalls | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
-    // We have to program MSR_PEBS_FRONTEND for the L1I Miss counter to work
-    unsafe {
-        use x86::msr::{wrmsr};
-        wrmsr(0x3f7, 0x12_u64);
-    }
+	// We have to program MSR_PEBS_FRONTEND for the L1I Miss counter to work
+	unsafe {
+		use x86::msr::{wrmsr};
+		wrmsr(0x3f7, 0x12_u64);
+	}
 	counters[1].set_configuration(EVENT_ICELAKE_L1D_REPLACEMENT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	counters[2].set_configuration(event_l2_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	counters[3].set_configuration(event_l3_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 
 	for x in 0..COUNTER_NUM {
-        counters[x].activate_counter(0);
+		counters[x].activate_counter(0);
 	}
 }
 
