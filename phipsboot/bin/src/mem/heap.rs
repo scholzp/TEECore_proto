@@ -3,7 +3,7 @@
 /// Size of the heap.
 const FALLBACK_HEAP_SIZE: usize = 0x1000 /* 32 KiB */;
 /// Maximal size of the heap when allocating free pages
-const MAX_HEAP_SIZE: usize = 1 * 4096; /* x * 32 KiB */
+const MAX_HEAP_SIZE: usize = 256 * 4096 + 256 * 4096; /* x * 32 KiB */
 /// Backing memory for the heap.
 static mut FALLBACK_HEAP: [u8; FALLBACK_HEAP_SIZE] = [0; FALLBACK_HEAP_SIZE];
 /// Tracks the current heap size
