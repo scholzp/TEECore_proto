@@ -44,7 +44,7 @@ fn setup_architecturial() {
 
 	let event_l1i_stalls: u64 = 0xC6_u64 | 0x01_u64 << 8;
 	let event_l2_hit: u64 = 0xd1_u64 | 0x02_u64 << 8;
-	let event_l3_hit: u64 = 0xd1_u64 | 0x04_u64 << 8;
+	let event_l2_miss: u64 = 0xd1_u64 | 0x10_u64 << 8;
 
 	counters[0].set_configuration(event_l1i_stalls | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	// We have to program MSR_PEBS_FRONTEND for the L1I Miss counter to work
@@ -54,7 +54,7 @@ fn setup_architecturial() {
 	}
 	counters[1].set_configuration(EVENT_ICELAKE_L1D_REPLACEMENT | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	counters[2].set_configuration(event_l2_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
-	counters[3].set_configuration(event_l3_hit | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
+	counters[3].set_configuration(event_l2_miss | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 
 	for x in 0..COUNTER_NUM {
 		counters[x].activate_counter(0);
@@ -78,5 +78,5 @@ pub fn read_and_print_pmcs() {
 	info!("IA_PMC1 (L1I Stalls)       = {:#018x?}", counters[0].read_pcm_val());
 	info!("IA_PMC0 (L1D Replacements) = {:#018x?}", counters[1].read_pcm_val());
 	info!("IA_PMC2 (L2 Hits)          = {:#018x?}", counters[2].read_pcm_val());
-	info!("IA_PMC3 (L3 Hits)          = {:#018x?}", counters[3].read_pcm_val());
+	info!("IA_PMC3 (L2 Miss)          = {:#018x?}", counters[3].read_pcm_val());
 }
