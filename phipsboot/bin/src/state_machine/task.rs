@@ -47,9 +47,7 @@ fn task_ping(communicator: &mut SharedMemCommunicator) {
         };
         for x in 0..(num_bytes / 8) {
             unsafe {
-                ptr::write_volatile(data_ptr.add(x), 0x1_u64);
-                let current_value = ptr::read_volatile(data_ptr.add(x));
-                ptr::write_volatile(data_ptr.add(x), current_value + 1);
+                ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
             }
         }
         unsafe {
