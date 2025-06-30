@@ -39,7 +39,6 @@ fn task_ping(communicator: &mut SharedMemCommunicator) {
 
     // First byte denote if vector was initialized
     if 0 == payload_mem[0] {
-        log::info!{""};
         // Create a vector with capacity to make sure that all is done with one
         //allocation
         let data_ptr = unsafe {
@@ -73,7 +72,6 @@ fn task_ping(communicator: &mut SharedMemCommunicator) {
 
     communicator.set_task(TaskId::Ping);
     communicator.set_status(TeeCommand::TeeSend);
-    info!("Ping");
 }
 
 

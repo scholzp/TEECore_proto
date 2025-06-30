@@ -276,6 +276,168 @@ impl MsrOffcoreRspEventCounter {
 	}
 }
 
+// use x86::msr::{
+// 	rdmsr, wrmsr,
+// 	MSR_UNCORE_ADDR_OPCODE_MATCH, MSR_UNCORE_PERF_GLOBAL_CTRL,
+//     MSR_UNCORE_PERF_GLOBAL_OVF_CTRL, MSR_UNCORE_PERF_GLOBAL_STATUS,
+// 	MSR_UNCORE_PERFEVTSEL0, MSR_UNCORE_PMC0,
+// 	MSR_UNCORE_PERFEVTSEL1, MSR_UNCORE_PMC1,
+// 	MSR_UNCORE_PERFEVTSEL2, MSR_UNCORE_PMC2,
+// 	MSR_UNCORE_PERFEVTSEL3, MSR_UNCORE_PMC3,
+// 	MSR_UNCORE_PERFEVTSEL4, MSR_UNCORE_PMC4,
+// 	MSR_UNCORE_PERFEVTSEL5, MSR_UNCORE_PMC5,
+// 	MSR_UNCORE_PERFEVTSEL6, MSR_UNCORE_PMC6,
+// 	MSR_UNCORE_PERFEVTSEL7, MSR_UNCORE_PMC7,
+// };
+
+// /// Abstraction to program uncore performance measurement counters.
+// impl Default for UncoreEventCounter {
+// 	fn default() -> Self {
+// 		Self {
+// 			index: 0x0_u8,
+// 			perfevtsel_content: 0x0_u64,
+// 		}
+// 	}
+// }
+
+// impl UncoreEventCounter {
+// 	/// Creates new UncoreEventCounter with given id.
+// 	///
+// 	/// * `x`			- Index of the MSR_UNCORE_PMCx and MSR_UNCORE_PERFEVTSELx to use
+// 	pub fn new(x: u8) -> Self {
+// 		Self {
+// 			index: x,
+// 			content: 0x0_u64,
+// 		}
+// 	}
+
+// 	/// Updates the configuration stored in this struct.
+// 	///
+// 	/// This does not automatically write to the respective MSR
+// 	///
+// 	/// * `config`- Bitvector to use for later operations
+// 	pub fn set_offcore_configuration(&mut self, config: u64) {
+// 		self.content = config;
+// 	}
+
+// 	/// Sets index.
+// 	///
+// 	/// * `x`- Index of the MSR_UNCORE_PMCx and MSR_UNCORE_PERFEVTSELx to use
+// 	pub fn set_index(&mut self, x: u8) {
+// 		self.index = x;
+// 	}
+
+// 	/// Initialize and activate the counter facility.
+// 	///
+// 	/// Write the configuration to the MSR_UNCORE_PERFEVTSELx and activate the
+// 	/// respective GP PMC to count events using this configuration. Reset the
+// 	/// counter to the given value.
+// 	///
+// 	///
+// 	/// * `init_v`: Value to reset the counter to
+// 	pub fn activate_counter(&self, init_v: u64) {
+// 		/* To activate a offcore PMC, we need to do the following things:
+// 		*  1) Configure the MSR_OFFCORE_RSPx with the actual event configuration
+// 		*  2) Configure the IA32_PERFEVTSELx with the behavior we wish for
+// 		*  3) Event and UMASK in IA32_PERFEVTSELx are chosen so that the
+// 		*	 PMC uses the configuration from MSR_OFFCORE_RSPx
+// 		*  4) Initialize IA32_PMCx (do we increment, do we decrement...?)
+// 		*  5) Start the counter by setting the bit in IA32_PERFEVTSELx
+// 		*/
+// 		let mut event_code: u64 = 0x0;
+// 		let mut msr_pmc: u32 = 0;
+// 		let mut msr_pmc_eventsel: u32 = 0;
+// 		// 1) Find the MSR_OFFCORE_RSPx to use and write the configuration to
+
+// 		// We cant to count all occurences (OS and User) of the eventcode of the
+// 		// chosen OFFCORE_RSP
+// 		let perfsel_content = 0x0_u64
+// 		| IA32_PERFEVTSEL_USR | IA32_PERFEVTSEL_OS // count in all priv levels
+// 		| event_code			// Event depending on chosen MSR_OFFCORE_RSPx
+// 		| OFFCORE_RSP_UNIT_MASK // offcore event UMASK
+// 		| IA32_PERFEVTSEL_EN; 	// Start the counter
+// 		// 2 & 3 & 4 & 5) Depending on the index of the PMC we do the same thing
+
+// 		match self.pmc_index {
+// 			0 => {
+// 				msr_pmc = MSR_UNCORE_PMC0;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL0;
+// 			},
+// 			1 => {
+// 				// We operate on MSR_UNCORE_PMC1 and MSR_UNCORE_PERFEVTSEL1
+// 				msr_pmc = MSR_UNCORE_PMC1;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL1;
+// 			},
+// 			2 => {
+// 				// We operate on MSR_UNCORE_PMC2 and MSR_UNCORE_PERFEVTSEL2
+// 				msr_pmc = MSR_UNCORE_PMC2;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL2;
+// 			},
+// 			3 => {
+// 				// We operate on MSR_UNCORE_PMC3 and MSR_UNCORE_PERFEVTSEL3
+// 				msr_pmc = MSR_UNCORE_PMC3;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL3;
+// 			},
+// 			4 => {
+// 				// We operate on MSR_UNCORE_PMC4 and MSR_UNCORE_PERFEVTSEL4
+// 				msr_pmc = MSR_UNCORE_PMC4;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL4;
+// 			},
+// 			5 => {
+// 				// We operate on MSR_UNCORE_PMC5 and MSR_UNCORE_PERFEVTSEL5
+// 				msr_pmc = MSR_UNCORE_PMC5;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL5;
+// 			},
+// 			6 => {
+// 				// We operate on MSR_UNCORE_PMC6 and MSR_UNCORE_PERFEVTSEL6
+// 				msr_pmc = MSR_UNCORE_PMC6;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL6;
+// 			},
+// 			7 => {
+// 				// We operate on MSR_UNCORE_PMC7 and MSR_UNCORE_PERFEVTSEL7
+// 				msr_pmc = MSR_UNCORE_PMC7;
+// 				msr_pmc_eventsel = MSR_UNCORE_PERFEVTSEL7;
+// 			},
+// 			_ => {
+// 				info!("No CPU known to implement more than 8 GP PMCs!");
+// 				return;  //TODO: We want, at some point, return an error
+// 			},
+// 		}
+// 		Self::init_and_conf_pmc(
+// 			msr_pmc_eventsel, msr_pmc, init_v, perfsel_content
+// 		);
+// 	}
+
+// 	fn init_and_conf_pmc(perfevtsel_register: u32, pmc_register: u32, init_v: u64, perfsel_content: u64) {
+// 		unsafe {
+// 			// Cancel any running performance measurements
+// 			wrmsr(perfevtsel_register, 0x0_u64);
+// 			// Reset the counter to zero
+// 			wrmsr(pmc_register, init_v);
+// 			// MSR_OFFCOREx was configured before
+// 			// Activate the counter
+// 			wrmsr(perfevtsel_register, perfsel_content);
+// 		}
+// 	}
+// 	pub fn read_pcm_val(&self) -> u64 {
+// 		match self.pmc_index {
+// 			0 => unsafe { rdmsr(MSR_UNCORE_PMC0) },
+// 			1 => unsafe { rdmsr(MSR_UNCORE_PMC1) },
+// 			2 => unsafe { rdmsr(MSR_UNCORE_PMC2) },
+// 			3 => unsafe { rdmsr(MSR_UNCORE_PMC3) },
+// 			4 => unsafe { rdmsr(MSR_UNCORE_PMC4) },
+// 			5 => unsafe { rdmsr(MSR_UNCORE_PMC5) },
+// 			6 => unsafe { rdmsr(MSR_UNCORE_PMC6) },
+// 			7 => unsafe { rdmsr(MSR_UNCORE_PMC7) },
+// 			_ => {
+// 				info!("No CPU known to implement 8 or more offcore PMCs!");
+// 				//return;  //TODO: We want, at some point, return an error
+// 				0
+// 			},
+// 		}
+// 	}
+// }
+
 /// Returns performance monitoring related features of th CPU
 pub fn query_features_intel() {
 	if false == vendor::check_vendor(vendor::CpuVendor::Intel) {

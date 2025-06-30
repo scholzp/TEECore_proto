@@ -63,7 +63,7 @@ impl SharedMemCommunicator {
             return TeeCommand::Unknown(0xff);
         }
         unsafe {
-            Into::<TeeCommand>::into(ptr::read(self.memory))
+            Into::<TeeCommand>::into(ptr::read_volatile(self.memory))
         }
     }
 
@@ -72,7 +72,7 @@ impl SharedMemCommunicator {
             return TaskId::Unknown;
         }
         unsafe {
-            Into::<TaskId>::into(ptr::read(self.memory.add(1)))
+            Into::<TaskId>::into(ptr::read_volatile(self.memory.add(1)))
         }
     }
 
@@ -123,7 +123,7 @@ impl SharedMemCommunicator {
                     // log::info!("Waiting for response!");
                 },
                 TeeCommand::HostSend => {
-                    log::info!("Received message - Task {:?}, Command {:?}", self.get_task(), self.get_status());
+                    // log::info!("Received message - Task {:?}, Command {:?}", self.get_task(), self.get_status());
                     self.still_waiting = false;
                     unsafe{ self.write_status(TeeCommand::None.into()) };
                     return;

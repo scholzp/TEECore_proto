@@ -88,22 +88,28 @@ entry_common:
     # This way, we can access all relevant data from the boot code. The mapping
     # is r/o for safety reasons. Hence, we can not write to memory from the
     # boot code once we entered 64-bit mode.
-    M_MAP_SYMBOL32  4 LINK_ADDR_BOOT boot_mem_pt_l4 boot_mem_pt_l3_lo 0x3
-    M_MAP_SYMBOL32  3 LINK_ADDR_BOOT boot_mem_pt_l3_lo boot_mem_pt_l2_lo 0x3
-    M_MAP_SYMBOL32  2 LINK_ADDR_BOOT boot_mem_pt_l2_lo LINK_ADDR_BOOT 0x83
+    M_MAP_SYMBOL32  4 LINK_ADDR_BOOT boot_mem_pt_l4 boot_mem_pt_l3_lo 0x13
+    M_MAP_SYMBOL32  3 LINK_ADDR_BOOT boot_mem_pt_l3_lo boot_mem_pt_l2_lo 0x13
+    M_MAP_SYMBOL32  2 LINK_ADDR_BOOT boot_mem_pt_l2_lo LINK_ADDR_BOOT 0x93
 
+
+    mov %eax, %cr0
+    or $(1 << 30), %eax
+    mov %cr0, %eax
+    wbinvd
+    mfence
     # Mappings for all high-level code segments (code, data, ro-data).
     # At this level RX, RO, and RW have the same page-table index.
-    M_MAP_HIGH_ADDR  4 LINK_ADDR_RX_PTR boot_mem_pt_l4 boot_mem_pt_l3_hi 0x3
-    M_MAP_HIGH_ADDR  3 LINK_ADDR_RX_PTR boot_mem_pt_l3_hi boot_mem_pt_l2_hi 0x3
-    M_MAP_HIGH_ADDR  2 LINK_ADDR_RX_PTR boot_mem_pt_l2_hi boot_mem_pt_l1_hi 0x3
+    M_MAP_HIGH_ADDR  4 LINK_ADDR_RX_PTR boot_mem_pt_l4 boot_mem_pt_l3_hi 0x13
+    M_MAP_HIGH_ADDR  3 LINK_ADDR_RX_PTR boot_mem_pt_l3_hi boot_mem_pt_l2_hi 0x13
+    M_MAP_HIGH_ADDR  2 LINK_ADDR_RX_PTR boot_mem_pt_l2_hi boot_mem_pt_l1_hi 0x13
 
     # To transfer cache lines to modified state on demand, all memory needs to
     # be writeable
-    M_MAP_HIGH_ADDR  1 LINK_ADDR_RX_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x3
-    M_MAP_HIGH_ADDR  1 LINK_ADDR_RO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x3)
-    M_MAP_HIGH_ADDR  1 LINK_ADDR_RW_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x3)
-    M_MAP_HIGH_ADDR  1 L1_HI_INFO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x3
+    M_MAP_HIGH_ADDR  1 LINK_ADDR_RX_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x03
+    M_MAP_HIGH_ADDR  1 LINK_ADDR_RO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x73)
+    M_MAP_HIGH_ADDR  1 LINK_ADDR_RW_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT (1 << 63 | 0x73)
+    M_MAP_HIGH_ADDR  1 L1_HI_INFO_PTR boot_mem_pt_l1_hi LINK_ADDR_BOOT 0x73
 
 
     # #############################################################
@@ -116,6 +122,7 @@ entry_common:
     # page fault after the update of %cr0.
 
     M_RESOLVE_RUNTIME_ADDR  boot_mem_pt_l4, %eax
+    or $(1<<4), %eax
     mov  %eax, %cr3 # set root page table
 
     M_SET_MSR_BITS  MSR_IA32_EFER_REG MSR_IA32_EFER_BITS

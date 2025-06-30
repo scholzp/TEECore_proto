@@ -47,6 +47,7 @@ extern "C" fn rust_entry64(
 ) -> ! {
     // The order of the init functions mostly reflect actual dependencies!
     idt::init();
+
     // // x86_64::instructions::interrupts::enable();
     let l1_addr = crate::extern_symbols::boot_symbol_to_high_address(crate::extern_symbols::boot_mem_pt_l1_hi());
     unsafe { paging::use_l1_page_table(l1_addr as u64) };
@@ -73,6 +74,10 @@ extern "C" fn rust_entry64(
     // Map the APIC page
     // make the L! page table available for translation
 
+    // x86_64::instructions::tlb::flush_all();
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
 
     log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
@@ -108,7 +113,7 @@ extern "C" fn rust_entry64(
             PhysAddr::from(mbi_addr),
             1,
             VirtAddr::from(l1_addr),
-            0x3
+            0x3 | (0x1 << 4)
         ))
     };
     log::info!("MBI virtual address: {:#016x?}", mbi_virt);
@@ -118,6 +123,7 @@ extern "C" fn rust_entry64(
     }
 
     let binding = boot_info.unwrap();
+    log::info!("");
     let mmap_shared_entry = binding
             .memory_map_tag()
             .expect("This setup contains a memory map")
@@ -151,9 +157,64 @@ extern "C" fn rust_entry64(
 
     let mut state_machine = state_machine::StateMachine::<state_machine::StateInitialized>::new(shared_mem_communicator);
 
-    pmc::setup_pmcs();
-    loop {
-        state_machine = state_machine::run_state_machine(state_machine);
+    unsafe {
+        // core::arch::asm!("wbinvd");
+        core::arch::asm!("mfence");
+        for i in 0..1024 {
+            core::arch::asm!("nop");
+        }
+    }
+    // loop {
+    //     pmc::setup_pmcs();
+    //     state_machine = state_machine::run_state_machine(state_machine);
+    //     pmc::read_and_print_pmcs();
+    // }
+
+    unsafe {
+        use core::ptr;
+        use alloc::alloc::{alloc, Layout};
+        use crate::mem::get_current_heap_size;
+
+        let num_bytes : usize = get_current_heap_size() - 0x1000;
+        log::info!("ALLOC:");
+        pmc::setup_pmcs();
+        let data_ptr = alloc(Layout::from_size_align(num_bytes, 8).unwrap()) as *mut u64;
+        pmc::read_and_print_pmcs();
+        log::info!("1st PASS:");
+        pmc::setup_pmcs();
+        for x in 0..(num_bytes / 8) {
+            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        }
+        pmc::read_and_print_pmcs();
+        log::info!("2nd PASS:");
+        pmc::setup_pmcs();
+        for x in 0..(num_bytes / 8) {
+            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        }
+        pmc::read_and_print_pmcs();
+        log::info!("3rd PASS:");
+        pmc::setup_pmcs();
+        for x in 0..(num_bytes / 8) {
+            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        }
+        pmc::read_and_print_pmcs();
+        log::info!("4th PASS:");
+        pmc::setup_pmcs();
+        for x in 0..(num_bytes / 8) {
+            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        }
+        pmc::read_and_print_pmcs();
+        log::info!("5th PASS:");
+        pmc::setup_pmcs();
+        for x in 0..(num_bytes / 8) {
+            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        }
+        pmc::read_and_print_pmcs();
+        log::info!("6th PASS:");
+        pmc::setup_pmcs();
+        for x in 0..(num_bytes / 8) {
+            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        }
         pmc::read_and_print_pmcs();
     }
     loop {}

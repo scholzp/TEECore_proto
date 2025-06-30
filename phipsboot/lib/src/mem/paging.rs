@@ -130,7 +130,7 @@ pub unsafe fn touch_all_present_pages() -> u64 {
         if ((1 == (pt_entry & 0x1_u64)) && (0 == (pt_entry & (0x1_u64 << 4)))) {
             // generate virtual address of first byte in the mapped page from L1
             // PT and the index
-            let first_qword = (l1_address_bits | ((x as u64) << 12)) as *mut u64;
+            let first_qword = (l1_address_bits + ((x as u64) << 12)) as *mut u64;
             for i in 0..512 {
                 let target_address = first_qword.add(i);
                 let value = ptr::read_volatile(target_address);
@@ -234,7 +234,7 @@ pub unsafe fn alloc_heap_pages(pml1_addr: u64, start_addr: u64, max_size: usize)
         for x in (last_present_index + 1)..512 {
             ptr::write(
                 pml1_ptr.add(x),
-                start_addr + ((0x1000 * x) as u64) | 0x3
+                start_addr + ((0x1000 * x) as u64) | 0x63
             );
             number_allocated_pages += 1;
             if (number_allocated_pages * 0x1000) >= max_size {
