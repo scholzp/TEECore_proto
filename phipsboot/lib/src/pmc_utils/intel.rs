@@ -258,6 +258,7 @@ impl MsrOffcoreRspEventCounter {
 	}
 
 	pub fn read_pcm_val(&self) -> u64 {
+        unsafe { core::arch::asm!("lfence"); }
 		match self.pmc_index {
 			0 => unsafe { rdmsr(IA32_PMC0) },
 			1 => unsafe { rdmsr(IA32_PMC1) },

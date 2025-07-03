@@ -156,11 +156,30 @@ bit64_trampoline:
     # SystemV ABI x86_64 calling convention
     # 1st in %rdi, 2nd in %rsi, 3nd in %rdx
 
+    # Write to MSR_PEBS_Frontend to active L1I counter
+    xor %eax, %eax
+    cpuid
+    mov $0x3f7, %rcx
+    mov $0x12, %rax
+    mov $0x0, %rdx
+    wrmsr
+    # Configure L1I_MISS Event
+    # First reset counter value PMC0
+    mov $0xc1, %rcx
+    mov $0x0, %rax
+    wrmsr
+    # Write to MSR_PERFEVSEL1
+    mov $0x186, %rcx
+    mov $0x4301C6, %rax
+    wrmsr
+    # Counters are now running
+
     # Boot Magic and Boot Info Ptr are already in %rdi and %rsi
     movsx  %ebp, %rdx  # 3rd param: Load offset: sign extend if negative
 
     # Set stack
     mov  (STACK_TOP_PTR),  %rsp  # set the aligned stack top ptr as stack
+
 
     movabs  $rust_entry64, %rax
     jmp  *%rax  # Absolute jump to link address of high-level code.

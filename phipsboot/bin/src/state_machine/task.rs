@@ -24,51 +24,9 @@ pub fn init_task_map() {
 }
 
 fn task_ping(communicator: &mut SharedMemCommunicator) {
-    use crate::mem::get_current_heap_size;
     let payload_mem = unsafe { communicator.get_slice() };
+    payload_mem[0] += 1;
 
-    use alloc::alloc::{alloc, Layout};
-    // We have one byte status field and 8 byte physical address that are
-    // stored in the shared memory.
-
-    // first get memory and the respective physical address
-    let mut payload_mem = unsafe { communicator.get_slice() };
-    // We want to fill the whole heap with value, but leave 4KiB for other things
-    let num_bytes : usize = get_current_heap_size() - 0x1000;
-    let address_offset = 2;
-
-    // First byte denote if vector was initialized
-    if 0 == payload_mem[0] {
-        // Create a vector with capacity to make sure that all is done with one
-        //allocation
-        let data_ptr = unsafe {
-            alloc(Layout::from_size_align(num_bytes, 8).unwrap()) as *mut u64
-        };
-        for x in 0..(num_bytes / 8) {
-            unsafe {
-                ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-            }
-        }
-        unsafe {
-            ptr::write_volatile(
-                payload_mem.as_mut_ptr().add(address_offset) as *mut u64,
-                paging::get_physical_address(data_ptr as u64)
-            );
-        }
-        payload_mem[0] = 1;
-    } else {
-        unsafe {
-            let mut hash: u32 = 0;
-            let mut current_value: u64 = 0;
-            let data_ptr = paging::get_virtual_address(
-                ptr::read_volatile(payload_mem.as_mut_ptr().add(address_offset) as *mut u64)
-            ) as *mut u64;
-            for x in 0..(num_bytes / 8) {
-                current_value = ptr::read_volatile(data_ptr.add(x));
-                ptr::write_volatile(data_ptr.add(x), current_value + 1);
-            }
-        }
-    }
 
     communicator.set_task(TaskId::Ping);
     communicator.set_status(TeeCommand::TeeSend);

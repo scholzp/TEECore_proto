@@ -175,46 +175,47 @@ extern "C" fn rust_entry64(
         use alloc::alloc::{alloc, Layout};
         use crate::mem::get_current_heap_size;
 
-        let num_bytes : usize = get_current_heap_size() - 0x1000;
-        log::info!("ALLOC:");
-        pmc::setup_pmcs();
-        let data_ptr = alloc(Layout::from_size_align(num_bytes, 8).unwrap()) as *mut u64;
-        pmc::read_and_print_pmcs();
-        log::info!("1st PASS:");
-        pmc::setup_pmcs();
-        for x in 0..(num_bytes / 8) {
-            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-        }
-        pmc::read_and_print_pmcs();
-        log::info!("2nd PASS:");
-        pmc::setup_pmcs();
-        for x in 0..(num_bytes / 8) {
-            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-        }
-        pmc::read_and_print_pmcs();
-        log::info!("3rd PASS:");
-        pmc::setup_pmcs();
-        for x in 0..(num_bytes / 8) {
-            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-        }
-        pmc::read_and_print_pmcs();
-        log::info!("4th PASS:");
-        pmc::setup_pmcs();
-        for x in 0..(num_bytes / 8) {
-            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-        }
-        pmc::read_and_print_pmcs();
-        log::info!("5th PASS:");
-        pmc::setup_pmcs();
-        for x in 0..(num_bytes / 8) {
-            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-        }
-        pmc::read_and_print_pmcs();
-        log::info!("6th PASS:");
-        pmc::setup_pmcs();
-        for x in 0..(num_bytes / 8) {
-            ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
-        }
+        // let num_bytes : usize = get_current_heap_size() - 0x1000;
+        // log::info!("ALLOC:");
+        // pmc::setup_pmcs();
+        // let data_ptr = alloc(Layout::from_size_align(num_bytes, 8).unwrap()) as *mut u64;
+        // pmc::read_and_print_pmcs();
+        // log::info!("1st PASS:");
+        // pmc::setup_pmcs();
+        // for x in 0..(num_bytes / 8) {
+        //     ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        // }
+        // pmc::read_and_print_pmcs();
+        // log::info!("2nd PASS:");
+        // pmc::setup_pmcs();
+        // for x in 0..(num_bytes / 8) {
+        //     ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        // }
+        // pmc::read_and_print_pmcs();
+        // log::info!("3rd PASS:");
+        // pmc::setup_pmcs();
+        // for x in 0..(num_bytes / 8) {
+        //     ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        // }
+        // pmc::read_and_print_pmcs();
+        // log::info!("4th PASS:");
+        // pmc::setup_pmcs();
+        // for x in 0..(num_bytes / 8) {
+        //     ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        // }
+        // pmc::read_and_print_pmcs();
+        // log::info!("5th PASS:");
+        // pmc::setup_pmcs();
+        // for x in 0..(num_bytes / 8) {
+        //     ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        // }
+        // pmc::read_and_print_pmcs();
+        // log::info!("6th PASS:");
+        // pmc::setup_pmcs();
+        // for x in 0..(num_bytes / 8) {
+        //     ptr::write_volatile(data_ptr.add(x), ptr::read_volatile(data_ptr.add(x)) + 1);
+        // }
+        state_machine = state_machine::run_state_machine(state_machine);
         pmc::read_and_print_pmcs();
     }
     loop {}
