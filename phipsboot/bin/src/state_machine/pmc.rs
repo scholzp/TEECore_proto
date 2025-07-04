@@ -23,7 +23,8 @@ fn setup_offcore() {
 
 	let mut counter = MsrOffcoreRspEventCounter::new(0, 3);
 	counter.set_offcore_configuration(
-		0x10002
+		//0x3F807F8FFF
+		0x3FFFCDAFF7
 	);
 	counter.activate_counter(0x0_u64);
 }
@@ -42,11 +43,11 @@ fn setup_architecturial() {
 		counters[x].set_index(x as u8);
 	}
 
-	let event_l1i_stalls: u64 = 0xC6_u64 | 0x01_u64 << 8;
+	let mem_any: u64 = 0xd0_u64 | 0x83_u64 << 8;
 	let event_l2_hit: u64 = 0xd1_u64 | 0x02_u64 << 8;
 	let event_l2_miss: u64 = 0xd1_u64 | 0x10_u64 << 8;
 
-	counters[0].set_configuration(event_l1i_stalls | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
+	counters[0].set_configuration(mem_any | IA32_PERFEVTSEL_OS | IA32_PERFEVTSEL_USR);
 	// We have to program MSR_PEBS_FRONTEND for the L1I Miss counter to work
 	unsafe {
 		use x86::msr::{wrmsr};
@@ -75,7 +76,7 @@ pub fn read_and_print_pmcs() {
 		counters[x].set_index(x as u8);
 	}
 
-	info!("IA_PMC1 (L1I Stalls)       = {:#018x?}", counters[0].read_pcm_val());
+	info!("IA_PMC1 (Mem Retired Any)  = {:#018x?}", counters[0].read_pcm_val());
 	info!("IA_PMC0 (L1D Replacements) = {:#018x?}", counters[1].read_pcm_val());
 	info!("IA_PMC2 (L2 Hits)          = {:#018x?}", counters[2].read_pcm_val());
 	info!("IA_PMC3 (L2 Miss)          = {:#018x?}", counters[3].read_pcm_val());
