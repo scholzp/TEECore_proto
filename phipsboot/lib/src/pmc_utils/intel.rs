@@ -247,6 +247,7 @@ impl MsrOffcoreRspEventCounter {
 
 	fn init_and_conf_pmc(perfevtsel_register: u32, pmc_register: u32, init_v: u64, perfsel_content: u64) {
 		unsafe {
+			unsafe { core::arch::asm!("mfence"); }
 			// Cancel any running performance measurements
 			wrmsr(perfevtsel_register, 0x0_u64);
 			// Reset the counter to zero
@@ -258,6 +259,7 @@ impl MsrOffcoreRspEventCounter {
 	}
 
 	pub fn read_pcm_val(&self) -> u64 {
+		unsafe { core::arch::asm!("mfence"); }
 		match self.pmc_index {
 			0 => unsafe { rdmsr(IA32_PMC0) },
 			1 => unsafe { rdmsr(IA32_PMC1) },
