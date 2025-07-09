@@ -73,6 +73,10 @@ extern "C" fn rust_entry64(
     unsafe { paging::use_l1_page_table(l1_addr as u64) };
 
     unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+    unsafe { log::info!("Hash of memory: {:#016x?}", paging::touch_all_present_pages() )};
+
     pmc::setup_pmcs();
 
     log::info!("{:?} {:?}", PhysAddr::from(apic_page), VirtAddr::from(crate::extern_symbols::link_addr_high_base() as u64));
