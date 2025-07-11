@@ -142,7 +142,7 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator, read: bool) {
 
     // First byte denote if vector was initialized
     if 0 == payload_mem[0] {
-        // Create a vecotr with capacity to make sure that all is done with one
+        // Create a vector with capacity to make sure that all is done with one
         //allocation
         let data_ptr = unsafe {
             alloc(Layout::from_size_align(num_elements, 4096).unwrap()) as *mut u32
@@ -167,9 +167,7 @@ fn task_mem_helper(communicator: &mut SharedMemCommunicator, read: bool) {
             ) as *mut u32;
             for x in 0..(num_elements / 4) {
                 current_value = if true == read {ptr::read_volatile(data_ptr.add(x))} else { 0 };
-                if TaskId::AttackWriteMem == task {
-                    ptr::write_volatile(data_ptr.add(x), current_value + 1);
-                }
+                ptr::write_volatile(data_ptr.add(x), current_value + 1);
             }
         }
     }
